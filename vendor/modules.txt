@@ -15,7 +15,6 @@ github.com/brancz/kube-rbac-proxy/pkg/tls
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
 # github.com/cloudflare/cfssl v1.4.1
-## explicit
 github.com/cloudflare/cfssl/api
 github.com/cloudflare/cfssl/api/client
 github.com/cloudflare/cfssl/auth
@@ -180,6 +179,7 @@ github.com/observatorium/api/ratelimit
 github.com/observatorium/api/ratelimit/gubernator
 github.com/observatorium/api/rbac
 github.com/observatorium/api/server
+github.com/observatorium/api/test/tls
 github.com/observatorium/api/tls
 github.com/observatorium/api/tracing
 # github.com/oklog/run v1.1.0
@@ -188,6 +188,7 @@ github.com/oklog/run
 # github.com/oklog/ulid v1.3.1
 github.com/oklog/ulid
 # github.com/open-policy-agent/opa v0.23.2
+## explicit
 github.com/open-policy-agent/opa/ast
 github.com/open-policy-agent/opa/ast/internal/scanner
 github.com/open-policy-agent/opa/ast/internal/tokens
@@ -278,6 +279,7 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/prometheus/prometheus v1.8.2-0.20210621150501-ff58416a0b02
+## explicit
 github.com/prometheus/prometheus/pkg/exemplar
 github.com/prometheus/prometheus/pkg/labels
 github.com/prometheus/prometheus/pkg/timestamp
@@ -363,6 +365,7 @@ golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2

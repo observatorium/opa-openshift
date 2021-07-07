@@ -1,0 +1,12 @@
+tenants:
+- name: application
+  id: 32e45e3e-b760-43a2-a7e1-02c5631e56e9
+  oidc:
+    clientID: test
+    clientSecret: ZXhhbXBsZS1hcHAtc2VjcmV0
+    issuerCAPath: ./tmp/certs/ca.pem
+    issuerURL: https://127.0.0.1:5556/dex
+    redirectURL: https://localhost:8443/oidc/application/callback
+    usernameClaim: name
+  opa:
+    url: http://127.0.0.1:8080/v1/data/observatorium/allow
