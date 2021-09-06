@@ -1,0 +1,35 @@
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: the-cluster-admin
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-application
+rules:
+- apiGroups:
+  - 'observatorium.openshift.io'
+  resources:
+  - application
+  resourceNames:
+  - logs
+  - metrics
+  verbs:
+  - 'get'
+  - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tenant-application
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tenant-application
+subjects:
+- kind: ServiceAccount
+  name: the-cluster-admin
+  namespace: default
