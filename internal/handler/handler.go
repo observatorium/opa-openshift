@@ -26,8 +26,8 @@ type dataRequestV1 struct {
 	Input opa.Input `json:"input"`
 }
 
-//nolint:cyclop
-func New(rti *instrumentation.RoundTripperInstrumenter, l log.Logger, cfg *config.Config) http.HandlerFunc { //nolint:lll
+//nolint:cyclop,gocognit
+func New(rti *instrumentation.RoundTripperInstrumenter, l log.Logger, cfg *config.Config) http.HandlerFunc {
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
 	matcher := cfg.Opa.Matcher

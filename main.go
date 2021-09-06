@@ -27,7 +27,6 @@ const (
 	dataEndpoint = "/v1/data"
 )
 
-//nolint:funlen
 func main() {
 	cfg, err := config.ParseFlags()
 	if err != nil {

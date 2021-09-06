@@ -5,6 +5,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source .bingo/variables.env
 
 result=1
