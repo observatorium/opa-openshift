@@ -7,14 +7,17 @@ import (
 	"strings"
 
 	"github.com/go-kit/kit/log"
+	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/openshift"
 	"github.com/open-policy-agent/opa/server/types"
 	"github.com/prometheus/prometheus/pkg/labels"
 )
 
 type Authorizer struct {
-	client openshift.Client
-	logger log.Logger
+	client  openshift.Client
+	logger  log.Logger
+	cache   cache.Cacher
+	matcher string
 }
 
 type AuthzResponse struct {
@@ -35,25 +38,48 @@ func (s *StatusCodeError) StatusCode() int {
 	return s.SC
 }
 
-func New(c openshift.Client, l log.Logger) *Authorizer {
-	return &Authorizer{client: c, logger: l}
+func New(c openshift.Client, l log.Logger, cc cache.Cacher, matcher string) *Authorizer {
+	return &Authorizer{client: c, logger: l, cache: cc, matcher: matcher}
 }
 
-func (a *Authorizer) Authorize(verb, resource, resourceName, apiGroup string) (bool, []string, error) {
+func (a *Authorizer) Authorize(token, verb, resource, resourceName, apiGroup string) (types.DataResponseV1, error) {
+	res, ok, err := a.cache.Get(token)
+	if err != nil {
+		return types.DataResponseV1{},
+			&StatusCodeError{fmt.Errorf("failed to fetch authorization response from cache: %w", err), http.StatusInternalServerError}
+	}
+
+	if ok {
+		return res, nil
+	}
+
 	allowed, err := a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup)
 	if err != nil {
-		return false, nil, &StatusCodeError{fmt.Errorf("failed to authorize subject for auth backend role: %w", err), http.StatusUnauthorized}
+		return types.DataResponseV1{},
+			&StatusCodeError{fmt.Errorf("failed to authorize subject for auth backend role: %w", err), http.StatusUnauthorized}
 	}
 
 	ns, err := a.client.ListNamespaces()
 	if err != nil {
-		return false, nil, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
+		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 	}
 
-	return allowed, ns, nil
+	res, err = newDataResponseV1(allowed, ns, a.matcher)
+	if err != nil {
+		return types.DataResponseV1{},
+			&StatusCodeError{fmt.Errorf("failed to create a new authorization response: %w", err), http.StatusInternalServerError}
+	}
+
+	err = a.cache.Set(token, res)
+	if err != nil {
+		return types.DataResponseV1{},
+			&StatusCodeError{fmt.Errorf("failed to store authorization response into cache: %w", err), http.StatusInternalServerError}
+	}
+
+	return res, nil
 }
 
-func NewDataResponseV1(allowed bool, ns []string, matcher string) (types.DataResponseV1, error) {
+func newDataResponseV1(allowed bool, ns []string, matcher string) (types.DataResponseV1, error) {
 	var res interface{}
 	if matcher == "" {
 		res = allowed
