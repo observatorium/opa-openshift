@@ -16,6 +16,7 @@ import (
 	"github.com/metalmatze/signal/healthcheck"
 	"github.com/metalmatze/signal/internalserver"
 	"github.com/metalmatze/signal/server/signalhttp"
+	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/handler"
 	"github.com/observatorium/opa-openshift/internal/instrumentation"
@@ -27,6 +28,7 @@ const (
 	dataEndpoint = "/v1/data"
 )
 
+//nolint:funlen
 func main() {
 	cfg, err := config.ParseFlags()
 	if err != nil {
@@ -49,20 +51,26 @@ func main() {
 	reg := prometheus.NewRegistry()
 	hi := signalhttp.NewHandlerInstrumenter(reg, []string{"handler"})
 	rti := instrumentation.NewRoundTripperInstrumenter(reg)
-
 	healthchecks := healthcheck.NewMetricsHandler(healthcheck.NewHandler(), reg)
+
+	var mc cache.Cacher
+
+	if len(cfg.Memcached.Servers) > 0 {
+		mc = cache.NewMemached(context.Background(), cfg.Memcached.Interval, cfg.Memcached.Expire, cfg.Memcached.Servers...)
+	} else {
+		mc = cache.NewInMemoryCache(cfg.Memcached.Expire)
+	}
+
+	wt := func(rt http.RoundTripper) http.RoundTripper {
+		return rti.NewRoundTripper("openshift", rt)
+	}
 
 	p := path.Join(dataEndpoint, strings.ReplaceAll(cfg.Opa.Pkg, ".", "/"), cfg.Opa.Rule)
 	level.Info(logger).Log("msg", "configuring the OPA endpoint", "path", p)
 
 	l := log.With(logger, "component", "authorizer")
 	m := http.NewServeMux()
-	m.HandleFunc(p,
-		hi.NewHandler(
-			prometheus.Labels{"handler": "data"},
-			handler.New(rti, l, cfg),
-		),
-	)
+	m.HandleFunc(p, hi.NewHandler(prometheus.Labels{"handler": "data"}, handler.New(l, mc, wt, cfg)))
 
 	if cfg.Server.HealthcheckURL != "" {
 		// checks if server is up

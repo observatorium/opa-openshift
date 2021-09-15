@@ -24,8 +24,9 @@ type Config struct {
 	LogFormat string
 	LogLevel  level.Option
 
-	Opa    OPAConfig
-	Server ServerConfig
+	Opa       OPAConfig
+	Server    ServerConfig
+	Memcached MemcachedConfig
 }
 
 type OPAConfig struct {
@@ -38,6 +39,12 @@ type ServerConfig struct {
 	Listen         string
 	ListenInternal string
 	HealthcheckURL string
+}
+
+type MemcachedConfig struct {
+	Expire   int32
+	Interval int32
+	Servers  []string
 }
 
 func ParseFlags() (*Config, error) {
@@ -60,6 +67,11 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.Opa.Pkg, "opa.package", "", "The name of the OPA package that opa-openshift should implement, see https://www.openpolicyagent.org/docs/latest/policy-language/#packages.")          //nolint:lll
 	flag.StringVar(&cfg.Opa.Rule, "opa.rule", "allow", "The name of the OPA rule for which opa-openshift should provide a result, see https://www.openpolicyagent.org/docs/latest/policy-language/#rules.") //nolint:lll
 	flag.StringVar(&cfg.Opa.Matcher, "opa.matcher", "", "The label key of the OPA label matcher returned to the requesting client.")
+
+	// Memcached flags
+	flag.StringSliceVar(&cfg.Memcached.Servers, "memcached", nil, "One or more Memcached server addresses.")
+	flag.Int32Var(&cfg.Memcached.Expire, "memcached.expire", 60*60, "Time after which keys stored in Memcached should expire, given in seconds.")              //nolint:lll,gomnd
+	flag.Int32Var(&cfg.Memcached.Interval, "memcached.interval", 10, "The interval at which to update the Memcached DNS, given in seconds; use 0 to disable.") //nolint:lll,gomnd
 
 	// Integration testing flags
 	flag.StringVar(&cfg.DebugToken, "debug.token", "", "Debug bearer token used for integration tests.")

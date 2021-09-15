@@ -3,7 +3,6 @@ package openshift
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -14,10 +13,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/transport"
 
 	"github.com/observatorium/opa-openshift/internal/external/k8s"
 	"github.com/observatorium/opa-openshift/internal/external/ocp"
-	"github.com/observatorium/opa-openshift/internal/instrumentation"
 )
 
 // Client is the standard openshift client to
@@ -38,7 +37,7 @@ type client struct {
 // kube config file on a prescribed path or under $HOME/.kube. The loaded kube
 // configuration is sanitized and augmented with the subject's forwarded bearer
 // token.
-func NewClient(rti *instrumentation.RoundTripperInstrumenter, kubeconfigPath, token string) (Client, error) {
+func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, error) {
 	cfg, err := getConfig(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -48,9 +47,7 @@ func NewClient(rti *instrumentation.RoundTripperInstrumenter, kubeconfigPath, to
 	// to request only user-accessible projects.
 	cfg = rest.AnonymousClientConfig(cfg)
 	cfg.BearerToken = token
-	cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return rti.NewRoundTripper("openshift", rt)
-	}
+	cfg.WrapTransport = wt
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {

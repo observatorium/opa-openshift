@@ -10,9 +10,10 @@ import (
 	"github.com/observatorium/api/opa"
 	"github.com/observatorium/api/rbac"
 	"github.com/observatorium/opa-openshift/internal/authorizer"
+	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
-	"github.com/observatorium/opa-openshift/internal/instrumentation"
 	"github.com/observatorium/opa-openshift/internal/openshift"
+	"k8s.io/client-go/transport"
 )
 
 const (
@@ -27,7 +28,7 @@ type dataRequestV1 struct {
 }
 
 //nolint:cyclop,gocognit
-func New(rti *instrumentation.RoundTripperInstrumenter, l log.Logger, cfg *config.Config) http.HandlerFunc {
+func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Config) http.HandlerFunc {
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
 	matcher := cfg.Opa.Matcher
@@ -90,16 +91,16 @@ func New(rti *instrumentation.RoundTripperInstrumenter, l log.Logger, cfg *confi
 			level.Warn(l).Log("msg", "using debug.token in production environments is not recommended.")
 		}
 
-		oc, err := openshift.NewClient(rti, kubeconfigPath, token)
+		oc, err := openshift.NewClient(wt, kubeconfigPath, token)
 		if err != nil {
 			http.Error(w, "failed to create openshift client", http.StatusInternalServerError)
 
 			return
 		}
 
-		a := authorizer.New(oc, l)
+		a := authorizer.New(oc, l, c, matcher)
 
-		allowed, namespaces, err := a.Authorize(verb, req.Input.Tenant, req.Input.Resource, apiGroup)
+		res, err := a.Authorize(token, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
@@ -110,12 +111,6 @@ func New(rti *instrumentation.RoundTripperInstrumenter, l log.Logger, cfg *confi
 			http.Error(w, err.Error(), statusCode)
 
 			return
-		}
-
-		res, err := authorizer.NewDataResponseV1(allowed, namespaces, matcher)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return //nolint:nlreturn
 		}
 
 		out, err := json.Marshal(res)
