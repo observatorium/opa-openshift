@@ -32,8 +32,14 @@ tmp/help.txt: opa-openshift
 README.md: $(EMBEDMD) tmp/help.txt
 	$(EMBEDMD) -w README.md
 
-opa-openshift: main.go $(wildcard *.go) $(wildcard */*.go)
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -mod vendor -a -ldflags '-s -w' -o $@ .
+.PHONY: deps
+deps: go.mod go.sum
+	go mod tidy
+	go mod download
+	go mod verify
+
+opa-openshift: deps main.go $(wildcard *.go) $(wildcard */*.go)
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -a -ldflags '-s -w' -o $@ .
 
 .PHONY: go-generate
 go-generate:
@@ -42,18 +48,13 @@ go-generate:
 .PHONY: build
 build: opa-openshift
 
-.PHONY: vendor
-vendor: go.mod go.sum
-	go mod tidy
-	go mod vendor
-
 .PHONY: format
 format: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --fix --enable-all -c .golangci.yml
 
 .PHONY: go-fmt
 go-fmt: $(GOFUMPT)
-	@fmt_res=$$(gofumpt -l -w $$(find . -type f -name '*.go' -not -path './vendor/*' -not -path './internal/external/k8s/k8sfakes/*' -not -path './internal/external/ocp/ocpfakes/*' -not -path '${TMP_DIR}/*')); if [ -n "$$fmt_res" ]; then printf '\nGofmt found style issues. Please check the reported issues\nand fix them if necessary before submitting the code for review:\n\n%s' "$$fmt_res"; exit 1; fi
+	@fmt_res=$$(gofumpt -l -w $$(find . -type f -name '*.go' -not -path './internal/external/k8s/k8sfakes/*' -not -path './internal/external/ocp/ocpfakes/*' -not -path '${TMP_DIR}/*')); if [ -n "$$fmt_res" ]; then printf '\nGofmt found style issues. Please check the reported issues\nand fix them if necessary before submitting the code for review:\n\n%s' "$$fmt_res"; exit 1; fi
 
 .PHONY: shellcheck
 shellcheck: $(SHELLCHECK)
