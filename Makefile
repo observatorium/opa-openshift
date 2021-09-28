@@ -69,7 +69,7 @@ test: build test-unit test-integration
 
 .PHONY: test-unit
 test-unit: go-generate
-	CGO_ENABLED=1 GO111MODULE=on go test -mod vendor -v -race -short ./...
+	CGO_ENABLED=1 GO111MODULE=on go test -v -race -short ./...
 
 .PHONY: test-integration
 test-integration: build integration-test-dependencies generate-cert
@@ -122,11 +122,11 @@ $(LOG_DIR):
 	mkdir -p $@
 
 $(OBSERVATORIUM): | $(BIN_DIR)
-	go build -mod=vendor -o $@ github.com/observatorium/api
+	go build -o $@ github.com/observatorium/api
 
 # A thin wrapper around github.com/cloudflare/cfssl
 $(GENERATE_TLS_CERT): | $(BIN_DIR)
-	go build -mod=vendor -tags tools -o $@ github.com/observatorium/api/test/tls
+	go build -tags tools -o $@ github.com/observatorium/api/test/tls
 
 $(SERVER_CERT): | $(GENERATE_TLS_CERT) $(CERT_DIR)
 	cd $(CERT_DIR) && $(GENERATE_TLS_CERT)
