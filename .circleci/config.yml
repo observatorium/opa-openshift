@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: golang:1.16.5
+      - image: golang:1.16
     steps:
       - checkout
       - run: |
@@ -11,7 +11,7 @@ jobs:
 
   lint:
     docker:
-      - image: golang:1.16.5
+      - image: golang:1.16
     steps:
       - checkout
       - run: |
@@ -20,7 +20,7 @@ jobs:
 
   test-unit:
     docker:
-      - image: golang:1.16.5
+      - image: golang:1.16
     steps:
       - checkout
       - run: |
@@ -29,7 +29,7 @@ jobs:
 
   container-push:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202107-02
     steps:
       - checkout
       - run: |
@@ -38,7 +38,7 @@ jobs:
 
   container-release:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202107-02
     steps:
       - checkout
       - run: |
