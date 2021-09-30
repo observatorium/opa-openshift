@@ -58,7 +58,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
   tagged-master:
     jobs:
       - container-release:
