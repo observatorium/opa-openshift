@@ -26,6 +26,7 @@ type Config struct {
 
 	Opa       OPAConfig
 	Server    ServerConfig
+	TLS       TLSConfig
 	Memcached MemcachedConfig
 }
 
@@ -41,13 +42,27 @@ type ServerConfig struct {
 	HealthcheckURL string
 }
 
+type TLSConfig struct {
+	MinVersion   string
+	CipherSuites []string
+
+	ServerCertFile string
+	ServerKeyFile  string
+
+	InternalServerCertFile string
+	InternalServerKeyFile  string
+}
+
 type MemcachedConfig struct {
 	Expire   int32
 	Interval int32
 	Servers  []string
 }
 
+//nolint:cyclop
 func ParseFlags() (*Config, error) {
+	var rawTLSCipherSuites string
+
 	cfg := &Config{}
 	// Logger flags
 	flag.StringVar(&cfg.Name, "debug.name", "opa-openshift", "A name to add as a prefix to log lines.")
@@ -58,6 +73,22 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.Server.Listen, "web.listen", ":8080", "The address on which the public server listens.")
 	flag.StringVar(&cfg.Server.ListenInternal, "web.internal.listen", ":8081", "The address on which the internal server listens.")
 	flag.StringVar(&cfg.Server.HealthcheckURL, "web.healthchecks.url", "http://localhost:8080", "The URL against which to run healthchecks.")
+
+	flag.StringVar(&cfg.TLS.MinVersion, "tls.min-version", "VersionTLS13",
+		"Minimum TLS version supported. Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants.")
+	flag.StringVar(&rawTLSCipherSuites, "tls.cipher-suites", "",
+		"Comma-separated list of cipher suites for the server."+
+			" Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants)."+
+			" If omitted, the default Go cipher suites will be used."+
+			" Note that TLS 1.3 ciphersuites are not configurable.")
+	flag.StringVar(&cfg.TLS.ServerCertFile, "tls.server.cert-file", "",
+		"File containing the default x509 Certificate for HTTPS. Leave blank to disable TLS.")
+	flag.StringVar(&cfg.TLS.ServerKeyFile, "tls.server.key-file", "",
+		"File containing the default x509 private key matching --tls.server.cert-file. Leave blank to disable TLS.")
+	flag.StringVar(&cfg.TLS.InternalServerCertFile, "tls.internal.server.cert-file", "",
+		"File containing the default x509 Certificate for internal HTTPS. Leave blank to disable TLS.")
+	flag.StringVar(&cfg.TLS.InternalServerKeyFile, "tls.internal.server.key-file", "",
+		"File containing the default x509 private key matching --tls.internal.server.cert-file. Leave blank to disable TLS.")
 
 	// OpenShift API flags
 	flag.StringVar(&cfg.KubeconfigPath, "openshift.kubeconfig", "", "A path to the kubeconfig against to use for authorizing client requests.")
@@ -89,6 +120,10 @@ func ParseFlags() (*Config, error) {
 	}
 
 	cfg.LogLevel = ll
+
+	if rawTLSCipherSuites != "" {
+		cfg.TLS.CipherSuites = strings.Split(rawTLSCipherSuites, ",")
+	}
 
 	if len(cfg.Opa.Pkg) > 0 && !validPackage.Match([]byte(cfg.Opa.Pkg)) {
 		return nil, fmt.Errorf("invalid OPA package name: %s", cfg.Opa.Pkg) //nolint:goerr113
