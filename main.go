@@ -16,6 +16,7 @@ import (
 	"github.com/metalmatze/signal/healthcheck"
 	"github.com/metalmatze/signal/internalserver"
 	"github.com/metalmatze/signal/server/signalhttp"
+	"github.com/observatorium/api/tls"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/handler"
@@ -28,7 +29,7 @@ const (
 	dataEndpoint = "/v1/data"
 )
 
-//nolint:funlen
+//nolint:funlen,cyclop
 func main() {
 	cfg, err := config.ParseFlags()
 	if err != nil {
@@ -102,14 +103,33 @@ func main() {
 		})
 	}
 	{
+		tlsConfig, err := tls.NewServerConfig(
+			log.With(logger, "protocol", "HTTP"),
+			cfg.TLS.ServerCertFile,
+			cfg.TLS.ServerKeyFile,
+			cfg.TLS.MinVersion,
+			cfg.TLS.CipherSuites,
+		)
+		if err != nil {
+			stdlog.Fatal(err)
+
+			return
+		}
+
 		//nolint:exhaustivestruct
 		s := http.Server{
-			Addr:    cfg.Server.Listen,
-			Handler: m,
+			Addr:      cfg.Server.Listen,
+			Handler:   m,
+			TLSConfig: tlsConfig,
 		}
 
 		g.Add(func() error {
 			level.Info(logger).Log("msg", "starting the HTTP server", "address", cfg.Server.Listen)
+
+			if tlsConfig != nil {
+				// serverCertFile and serverKeyFile passed in TLSConfig at initialization.
+				return s.ListenAndServeTLS("", "") //nolint:wrapcheck
+			}
 
 			return s.ListenAndServe() //nolint:wrapcheck
 		}, func(_ error) {
@@ -117,7 +137,21 @@ func main() {
 			_ = s.Shutdown(context.Background())
 		})
 	}
+
 	{
+		tlsConfig, err := tls.NewServerConfig(
+			log.With(logger, "protocol", "HTTP"),
+			cfg.TLS.InternalServerCertFile,
+			cfg.TLS.InternalServerKeyFile,
+			cfg.TLS.MinVersion,
+			cfg.TLS.CipherSuites,
+		)
+		if err != nil {
+			stdlog.Fatal(err)
+
+			return
+		}
+
 		h := internalserver.NewHandler(
 			internalserver.WithName("Internal - opa-openshift API"),
 			internalserver.WithHealthchecks(healthchecks),
@@ -127,12 +161,18 @@ func main() {
 
 		//nolint:exhaustivestruct
 		s := http.Server{
-			Addr:    cfg.Server.ListenInternal,
-			Handler: h,
+			Addr:      cfg.Server.ListenInternal,
+			Handler:   h,
+			TLSConfig: tlsConfig,
 		}
 
 		g.Add(func() error {
 			level.Info(logger).Log("msg", "starting internal HTTP server", "address", s.Addr)
+
+			if tlsConfig != nil {
+				// serverCertFile and serverKeyFile passed in TLSConfig at initialization.
+				return s.ListenAndServeTLS("", "") //nolint:wrapcheck
+			}
 
 			return s.ListenAndServe() //nolint:wrapcheck
 		}, func(_ error) {
