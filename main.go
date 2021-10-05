@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	stdtls "crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	stdlog "log"
 	"net/http"
 	"os"
@@ -23,6 +26,7 @@ import (
 	"github.com/observatorium/opa-openshift/internal/instrumentation"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/component-base/cli/flag"
 )
 
 const (
@@ -74,10 +78,30 @@ func main() {
 	m.HandleFunc(p, hi.NewHandler(prometheus.Labels{"handler": "data"}, handler.New(l, mc, wt, cfg)))
 
 	if cfg.Server.HealthcheckURL != "" {
+		minVer, err := flag.TLSVersion(cfg.TLS.MinVersion)
+		if err != nil {
+			stdlog.Fatalf("failed to read TLS min version: %v", err)
+		}
+
+		t := (http.DefaultTransport).(*http.Transport).Clone()
+		t.TLSClientConfig = &stdtls.Config{ //nolint:gosec
+			MinVersion: minVer,
+		}
+
+		if cfg.TLS.InternalServerCAFile != "" {
+			caCert, err := ioutil.ReadFile(cfg.TLS.InternalServerCAFile)
+			if err != nil {
+				stdlog.Fatalf("failed to initialize healthcheck server TLS CA: %v", err)
+			}
+
+			t.TLSClientConfig.RootCAs = x509.NewCertPool()
+			t.TLSClientConfig.RootCAs.AppendCertsFromPEM(caCert)
+		}
+
 		// checks if server is up
 		healthchecks.AddLivenessCheck("http",
 			healthcheck.HTTPCheckClient(
-				&http.Client{}, //nolint:exhaustivestruct
+				&http.Client{Transport: t}, //nolint:exhaustivestruct
 				cfg.Server.HealthcheckURL,
 				http.MethodGet,
 				http.StatusNotFound,
