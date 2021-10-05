@@ -51,6 +51,7 @@ type TLSConfig struct {
 
 	InternalServerCertFile string
 	InternalServerKeyFile  string
+	InternalServerCAFile   string
 }
 
 type MemcachedConfig struct {
@@ -89,6 +90,9 @@ func ParseFlags() (*Config, error) {
 		"File containing the default x509 Certificate for internal HTTPS. Leave blank to disable TLS.")
 	flag.StringVar(&cfg.TLS.InternalServerKeyFile, "tls.internal.server.key-file", "",
 		"File containing the default x509 private key matching --tls.internal.server.cert-file. Leave blank to disable TLS.")
+	flag.StringVar(&cfg.TLS.InternalServerCAFile, "tls.internal.server.ca-file", "",
+		"File containing the TLS CA against which to verify servers."+
+			" If no server CA is specified, the client will use the system certificates.")
 
 	// OpenShift API flags
 	flag.StringVar(&cfg.KubeconfigPath, "openshift.kubeconfig", "", "A path to the kubeconfig against to use for authorizing client requests.")
