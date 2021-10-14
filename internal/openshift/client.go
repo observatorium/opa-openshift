@@ -23,7 +23,7 @@ import (
 // check authentication and authorization for
 // subjects.
 type Client interface {
-	SelfSubjectAccessReview(verb, resource, resourceName, apiGroup string) (bool, error)
+	SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup string) (bool, error)
 	ListNamespaces() ([]string, error)
 }
 
@@ -43,16 +43,18 @@ func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, 
 		return nil, err
 	}
 
-	// Set user token to acces the project clienset
-	// to request only user-accessible projects.
-	cfg = rest.AnonymousClientConfig(cfg)
-	cfg.BearerToken = token
 	cfg.WrapTransport = wt
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8s clientset: %w", err)
 	}
+
+	// Set user token to acces the project clienset
+	// to request only user-accessible projects.
+	cfg = rest.AnonymousClientConfig(cfg)
+	cfg.BearerToken = token
+	cfg.WrapTransport = wt
 
 	projectClient, err := projectv1.NewForConfig(cfg)
 	if err != nil {
@@ -65,11 +67,13 @@ func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, 
 	}, nil
 }
 
-// SelfSubjectAccessReview requests a self subject access review from the k8s api server
+// SubjectAccessReview requests a self subject access review from the k8s api server
 // for an authenticated user.
-func (c *client) SelfSubjectAccessReview(verb, resource, resourceName, apiGroup string) (bool, error) {
-	ssar := &authorizationv1.SelfSubjectAccessReview{
-		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+func (c *client) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup string) (bool, error) {
+	ssar := &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			User:   user,
+			Groups: groups,
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Group:    apiGroup,
 				Resource: resource,
@@ -79,7 +83,7 @@ func (c *client) SelfSubjectAccessReview(verb, resource, resourceName, apiGroup 
 		},
 	}
 
-	res, err := c.k8sClient.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), ssar, metav1.CreateOptions{})
+	res, err := c.k8sClient.AuthorizationV1().SubjectAccessReviews().Create(context.TODO(), ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to create subject access review: %w", err)
 	}

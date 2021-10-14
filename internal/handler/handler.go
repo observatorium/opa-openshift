@@ -100,7 +100,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		a := authorizer.New(oc, l, c, matcher)
 
-		res, err := a.Authorize(token, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
