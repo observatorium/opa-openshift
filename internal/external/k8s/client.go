@@ -36,8 +36,8 @@ type AuthorizationV1Interface interface {
 // Client is a kubernetes clientset interface used internally. It copies functions from
 // k8s.io/client-go/kubernetes
 //
-//counterfeiter:generate . SelfSubjectAccessReviewInterface
-type SelfSubjectAccessReviewInterface interface {
+//counterfeiter:generate . SubjectAccessReviewInterface
+type SubjectAccessReviewInterface interface {
 	//nolint:lll
-	Create(ctx context.Context, selfSubjectAccessReview *authorizationapiv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authorizationapiv1.SelfSubjectAccessReview, error)
+	Create(ctx context.Context, subjectAccessReview *authorizationapiv1.SubjectAccessReview, opts metav1.CreateOptions) (*authorizationapiv1.SubjectAccessReview, error)
 }

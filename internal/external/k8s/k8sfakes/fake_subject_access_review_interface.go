@@ -10,32 +10,32 @@ import (
 	v1a "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type FakeSelfSubjectAccessReviewInterface struct {
-	CreateStub        func(context.Context, *v1.SelfSubjectAccessReview, v1a.CreateOptions) (*v1.SelfSubjectAccessReview, error)
+type FakeSubjectAccessReviewInterface struct {
+	CreateStub        func(context.Context, *v1.SubjectAccessReview, v1a.CreateOptions) (*v1.SubjectAccessReview, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 context.Context
-		arg2 *v1.SelfSubjectAccessReview
+		arg2 *v1.SubjectAccessReview
 		arg3 v1a.CreateOptions
 	}
 	createReturns struct {
-		result1 *v1.SelfSubjectAccessReview
+		result1 *v1.SubjectAccessReview
 		result2 error
 	}
 	createReturnsOnCall map[int]struct {
-		result1 *v1.SelfSubjectAccessReview
+		result1 *v1.SubjectAccessReview
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) Create(arg1 context.Context, arg2 *v1.SelfSubjectAccessReview, arg3 v1a.CreateOptions) (*v1.SelfSubjectAccessReview, error) {
+func (fake *FakeSubjectAccessReviewInterface) Create(arg1 context.Context, arg2 *v1.SubjectAccessReview, arg3 v1a.CreateOptions) (*v1.SubjectAccessReview, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 context.Context
-		arg2 *v1.SelfSubjectAccessReview
+		arg2 *v1.SubjectAccessReview
 		arg3 v1a.CreateOptions
 	}{arg1, arg2, arg3})
 	stub := fake.CreateStub
@@ -51,52 +51,52 @@ func (fake *FakeSelfSubjectAccessReviewInterface) Create(arg1 context.Context, a
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) CreateCallCount() int {
+func (fake *FakeSubjectAccessReviewInterface) CreateCallCount() int {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) CreateCalls(stub func(context.Context, *v1.SelfSubjectAccessReview, v1a.CreateOptions) (*v1.SelfSubjectAccessReview, error)) {
+func (fake *FakeSubjectAccessReviewInterface) CreateCalls(stub func(context.Context, *v1.SubjectAccessReview, v1a.CreateOptions) (*v1.SubjectAccessReview, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) CreateArgsForCall(i int) (context.Context, *v1.SelfSubjectAccessReview, v1a.CreateOptions) {
+func (fake *FakeSubjectAccessReviewInterface) CreateArgsForCall(i int) (context.Context, *v1.SubjectAccessReview, v1a.CreateOptions) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) CreateReturns(result1 *v1.SelfSubjectAccessReview, result2 error) {
+func (fake *FakeSubjectAccessReviewInterface) CreateReturns(result1 *v1.SubjectAccessReview, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 *v1.SelfSubjectAccessReview
+		result1 *v1.SubjectAccessReview
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) CreateReturnsOnCall(i int, result1 *v1.SelfSubjectAccessReview, result2 error) {
+func (fake *FakeSubjectAccessReviewInterface) CreateReturnsOnCall(i int, result1 *v1.SubjectAccessReview, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
-			result1 *v1.SelfSubjectAccessReview
+			result1 *v1.SubjectAccessReview
 			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
-		result1 *v1.SelfSubjectAccessReview
+		result1 *v1.SubjectAccessReview
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) Invocations() map[string][][]interface{} {
+func (fake *FakeSubjectAccessReviewInterface) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
@@ -108,7 +108,7 @@ func (fake *FakeSelfSubjectAccessReviewInterface) Invocations() map[string][][]i
 	return copiedInvocations
 }
 
-func (fake *FakeSelfSubjectAccessReviewInterface) recordInvocation(key string, args []interface{}) {
+func (fake *FakeSubjectAccessReviewInterface) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -120,4 +120,4 @@ func (fake *FakeSelfSubjectAccessReviewInterface) recordInvocation(key string, a
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ k8s.SelfSubjectAccessReviewInterface = new(FakeSelfSubjectAccessReviewInterface)
+var _ k8s.SubjectAccessReviewInterface = new(FakeSubjectAccessReviewInterface)

@@ -49,15 +49,17 @@ func TestListNamespaces_ReturnsOnlyNames(t *testing.T) {
 
 func TestSubjectAccessReview_HandleResourceAttributesOnly(t *testing.T) {
 	authzv1 := &k8sfakes.FakeAuthorizationV1Interface{}
-	sar := &k8sfakes.FakeSelfSubjectAccessReviewInterface{}
+	sar := &k8sfakes.FakeSubjectAccessReviewInterface{}
 	k8sClient := &k8sfakes.FakeClientSet{}
 
-	authzv1.SelfSubjectAccessReviewsReturns(sar)
+	authzv1.SubjectAccessReviewsReturns(sar)
 	k8sClient.AuthorizationV1Returns(authzv1)
 
 	c := client{k8sClient: k8sClient}
 
 	type sarInput struct {
+		user         string
+		groups       []string
 		verb         string
 		apiGroup     string
 		resource     string
@@ -65,13 +67,17 @@ func TestSubjectAccessReview_HandleResourceAttributesOnly(t *testing.T) {
 	}
 
 	input := sarInput{
+		user:         "robocop",
+		groups:       []string{"detroit", "police"},
 		verb:         "get",
 		apiGroup:     "group.me.io",
 		resource:     "tenantID",
 		resourceName: "resource",
 	}
 
-	sar.CreateCalls(func(_ context.Context, sar *authorizationv1.SelfSubjectAccessReview, _ metav1.CreateOptions) (*authorizationv1.SelfSubjectAccessReview, error) { //nolint:lll
+	sar.CreateCalls(func(_ context.Context, sar *authorizationv1.SubjectAccessReview, _ metav1.CreateOptions) (*authorizationv1.SubjectAccessReview, error) { //nolint:lll
+		require.Equal(t, input.user, sar.Spec.User)
+		require.Equal(t, input.groups, sar.Spec.Groups)
 		require.NotNil(t, sar.Spec.ResourceAttributes)
 		require.Equal(t, input.verb, sar.Spec.ResourceAttributes.Verb)
 		require.Equal(t, input.resource, sar.Spec.ResourceAttributes.Resource)
@@ -82,6 +88,6 @@ func TestSubjectAccessReview_HandleResourceAttributesOnly(t *testing.T) {
 		return sar, nil
 	})
 
-	_, err := c.SelfSubjectAccessReview(input.verb, input.resource, input.resourceName, input.apiGroup)
+	_, err := c.SubjectAccessReview(input.user, input.groups, input.verb, input.resource, input.resourceName, input.apiGroup)
 	require.NoError(t, err)
 }
