@@ -1,12 +1,14 @@
 package authorizer
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/openshift"
 	"github.com/open-policy-agent/opa/server/types"
@@ -63,6 +65,13 @@ func (a *Authorizer) Authorize(
 			&StatusCodeError{fmt.Errorf("failed to authorize subject for auth backend role: %w", err), http.StatusUnauthorized}
 	}
 
+	level.Debug(a.logger).Log(
+		"executed SubjectAccessReview",
+		"user", user, "groups", groups,
+		"res", resource, "name", resourceName, "api", apiGroup,
+		"allowed", allowed,
+	)
+
 	ns, err := a.client.ListNamespaces()
 	if err != nil {
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
@@ -97,9 +106,16 @@ func newDataResponseV1(allowed bool, ns []string, matcher string) (types.DataRes
 		return types.DataResponseV1{}, fmt.Errorf("failed to create new matcher: %w", err)
 	}
 
+	matchers := []*labels.Matcher{lm}
+
+	data, err := json.Marshal(&matchers)
+	if err != nil {
+		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)
+	}
+
 	res = map[string]string{
 		"allowed": strconv.FormatBool(allowed),
-		"data":    lm.String(),
+		"data":    string(data),
 	}
 
 	//nolint:exhaustivestruct
