@@ -66,8 +66,8 @@ func (a *Authorizer) Authorize(
 	}
 
 	level.Debug(a.logger).Log(
-		"executed SubjectAccessReview",
-		"user", user, "groups", groups,
+		"msg", "executed SubjectAccessReview",
+		"user", user, "groups", fmt.Sprintf("%s", groups),
 		"res", resource, "name", resourceName, "api", apiGroup,
 		"allowed", allowed,
 	)
