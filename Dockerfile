@@ -1,4 +1,4 @@
-FROM golang:1.16.5-alpine3.13 as builder
+FROM golang:1.18.4-alpine3.16 as builder
 
 RUN apk add --update --no-cache ca-certificates tzdata git make bash && update-ca-certificates
 
@@ -7,7 +7,7 @@ WORKDIR /opt
 
 RUN git update-index --refresh; make opa-openshift
 
-FROM alpine:3.13 as runner
+FROM alpine3.16 as runner
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /opt/opa-openshift /bin/opa-openshift
