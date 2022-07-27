@@ -22,7 +22,7 @@ linters-settings:
     statements: 60
   gofumpt:
     # Select the Go version to target. The default is `1.16`.
-    lang-version: "1.1604"
+    lang-version: "1.18"
     # Choose whether or not to use the extra rules that are disabled
     # by default
     extra-rules: true

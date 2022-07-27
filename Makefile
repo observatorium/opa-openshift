@@ -54,7 +54,7 @@ format: $(GOLANGCI_LINT)
 
 .PHONY: go-fmt
 go-fmt: $(GOFUMPT)
-	@fmt_res=$$(gofumpt -l -w $$(find . -type f -name '*.go' -not -path './internal/external/k8s/k8sfakes/*' -not -path './internal/external/ocp/ocpfakes/*' -not -path '${TMP_DIR}/*')); if [ -n "$$fmt_res" ]; then printf '\nGofmt found style issues. Please check the reported issues\nand fix them if necessary before submitting the code for review:\n\n%s' "$$fmt_res"; exit 1; fi
+	@fmt_res=$$($(GOFUMPT) -l -w $$(find . -type f -name '*.go' -not -path './internal/external/k8s/k8sfakes/*' -not -path './internal/external/ocp/ocpfakes/*' -not -path '${TMP_DIR}/*')); if [ -n "$$fmt_res" ]; then printf '\nGofmt found style issues. Please check the reported issues\nand fix them if necessary before submitting the code for review:\n\n%s' "$$fmt_res"; exit 1; fi
 
 .PHONY: shellcheck
 shellcheck: $(SHELLCHECK)
@@ -62,7 +62,7 @@ shellcheck: $(SHELLCHECK)
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) go-fmt shellcheck
-	$(GOLANGCI_LINT) run -v --enable-all -c .golangci.yml
+	$(GOLANGCI_LINT) run -c .golangci.yml
 
 .PHONY: test
 test: build test-unit test-integration
