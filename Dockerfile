@@ -7,7 +7,7 @@ WORKDIR /opt
 
 RUN git update-index --refresh; make opa-openshift
 
-FROM alpine3.16 as runner
+FROM docker.io/library/alpine:3.16 as runner
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /opt/opa-openshift /bin/opa-openshift
