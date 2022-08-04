@@ -69,7 +69,7 @@ token=$(curl --request POST \
 
 
 (
-  $LOKI_2_2_1 \
+  $LOKI \
     -log.level=error \
     -target=all \
     -config.file=./test/config/loki.yml > "$LOG_DIR"/loki.log 2>&1
