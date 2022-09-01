@@ -15,8 +15,6 @@ import (
 	"github.com/prometheus/prometheus/pkg/labels"
 )
 
-const clusterAdminGroup = "system:cluster-admins"
-
 type Authorizer struct {
 	client  openshift.Client
 	logger  log.Logger
@@ -79,14 +77,7 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 	}
 
-	isAdmin := groupsContainsClusterAdmin(groups)
-
-	level.Debug(a.logger).Log(
-		"msg", "result of admin check",
-		"user", user, "admin", isAdmin,
-	)
-
-	res, err = newDataResponseV1(allowed, ns, a.matcher, isAdmin)
+	res, err = newDataResponseV1(allowed, ns, a.matcher)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to create a new authorization response: %w", err), http.StatusInternalServerError}
@@ -101,9 +92,9 @@ func (a *Authorizer) Authorize(
 	return res, nil
 }
 
-func newDataResponseV1(allowed bool, ns []string, matcher string, isAdmin bool) (types.DataResponseV1, error) {
+func newDataResponseV1(allowed bool, ns []string, matcher string) (types.DataResponseV1, error) {
 	var res interface{}
-	if isAdmin || matcher == "" {
+	if matcher == "" {
 		res = allowed
 
 		//nolint:exhaustivestruct
@@ -129,14 +120,4 @@ func newDataResponseV1(allowed bool, ns []string, matcher string, isAdmin bool) 
 
 	//nolint:exhaustivestruct
 	return types.DataResponseV1{Result: &res}, nil
-}
-
-func groupsContainsClusterAdmin(groups []string) bool {
-	for _, g := range groups {
-		if g == clusterAdminGroup {
-			return true
-		}
-	}
-
-	return false
 }

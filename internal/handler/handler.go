@@ -31,8 +31,12 @@ type dataRequestV1 struct {
 func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Config) http.HandlerFunc {
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
-	matcher := cfg.Opa.Matcher
 	debugToken := cfg.DebugToken
+
+	matcherSkipTenants := make(map[string]bool)
+	for _, tenant := range cfg.Opa.MatcherSkipTenants {
+		matcherSkipTenants[tenant] = true
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -98,6 +102,8 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
+		matcher := matcherForTenant(req.Input.Tenant, cfg.Opa.Matcher, matcherSkipTenants)
+
 		a := authorizer.New(oc, l, c, matcher)
 
 		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
@@ -132,4 +138,12 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 	}
+}
+
+func matcherForTenant(tenant, matcher string, skipTenants map[string]bool) string {
+	if matcher == "" || skipTenants[tenant] {
+		return ""
+	}
+
+	return matcher
 }
