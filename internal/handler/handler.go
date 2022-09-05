@@ -33,9 +33,9 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	tenantAPIGroups := cfg.Mappings
 	debugToken := cfg.DebugToken
 
-	matcherSkipTenants := make(map[string]bool)
+	matcherSkipTenants := make(map[string]struct{}, len(cfg.Opa.MatcherSkipTenants))
 	for _, tenant := range cfg.Opa.MatcherSkipTenants {
-		matcherSkipTenants[tenant] = true
+		matcherSkipTenants[tenant] = struct{}{}
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -140,8 +140,12 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	}
 }
 
-func matcherForTenant(tenant, matcher string, skipTenants map[string]bool) string {
-	if matcher == "" || skipTenants[tenant] {
+func matcherForTenant(tenant, matcher string, skipTenants map[string]struct{}) string {
+	if matcher == "" {
+		return ""
+	}
+
+	if _, skip := skipTenants[tenant]; skip {
 		return ""
 	}
 
