@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -33,10 +34,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	tenantAPIGroups := cfg.Mappings
 	debugToken := cfg.DebugToken
 
-	matcherSkipTenants := make(map[string]struct{}, len(cfg.Opa.MatcherSkipTenants))
-	for _, tenant := range cfg.Opa.MatcherSkipTenants {
-		matcherSkipTenants[tenant] = struct{}{}
-	}
+	matcherSkipTenants := prepareMatcherSkipTenants(cfg.Opa.MatcherSkipTenants)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -138,6 +136,25 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 	}
+}
+
+func prepareMatcherSkipTenants(rawTenants string) map[string]struct{} {
+	if rawTenants == "" {
+		return nil
+	}
+
+	tenants := strings.Split(rawTenants, ",")
+
+	skipMap := make(map[string]struct{}, len(tenants))
+	for _, tenant := range tenants {
+		if tenant == "" {
+			continue
+		}
+
+		skipMap[tenant] = struct{}{}
+	}
+
+	return skipMap
 }
 
 func matcherForTenant(tenant, matcher string, skipTenants map[string]struct{}) string {
