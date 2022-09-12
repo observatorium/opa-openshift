@@ -33,8 +33,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
 	debugToken := cfg.DebugToken
-
-	matcherSkipTenants := prepareMatcherSkipTenants(cfg.Opa.MatcherSkipTenants)
+	matcherForRequest := createMatcherFunc(cfg.Opa)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -100,7 +99,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
-		matcher := matcherForTenant(req.Input.Tenant, cfg.Opa.Matcher, matcherSkipTenants)
+		matcher := matcherForRequest(req.Input.Tenant, req.Input.Groups)
 
 		a := authorizer.New(oc, l, c, matcher)
 
@@ -138,33 +137,45 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	}
 }
 
-func prepareMatcherSkipTenants(rawTenants string) map[string]struct{} {
-	if rawTenants == "" {
+func prepareMap(csvInput string) map[string]struct{} {
+	if csvInput == "" {
 		return nil
 	}
 
-	tenants := strings.Split(rawTenants, ",")
+	tokens := strings.Split(csvInput, ",")
 
-	skipMap := make(map[string]struct{}, len(tenants))
-	for _, tenant := range tenants {
-		if tenant == "" {
+	skipMap := make(map[string]struct{}, len(tokens))
+	for _, token := range tokens {
+		if token == "" {
 			continue
 		}
 
-		skipMap[tenant] = struct{}{}
+		skipMap[token] = struct{}{}
 	}
 
 	return skipMap
 }
 
-func matcherForTenant(tenant, matcher string, skipTenants map[string]struct{}) string {
-	if matcher == "" {
-		return ""
-	}
+func createMatcherFunc(cfg config.OPAConfig) func(tenant string, groups []string) string {
+	matcher := cfg.Matcher
+	skipTenants := prepareMap(cfg.MatcherSkipTenants)
+	adminGroups := prepareMap(cfg.MatcherAdminGroups)
 
-	if _, skip := skipTenants[tenant]; skip {
-		return ""
-	}
+	return func(tenant string, groups []string) string {
+		if matcher == "" {
+			return ""
+		}
 
-	return matcher
+		if _, skip := skipTenants[tenant]; skip {
+			return ""
+		}
+
+		for _, group := range groups {
+			if _, admin := adminGroups[group]; admin {
+				return ""
+			}
+		}
+
+		return matcher
+	}
 }

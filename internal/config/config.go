@@ -35,6 +35,7 @@ type OPAConfig struct {
 	Rule               string
 	Matcher            string
 	MatcherSkipTenants string
+	MatcherAdminGroups string
 }
 
 type ServerConfig struct {
@@ -104,6 +105,7 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.Opa.Rule, "opa.rule", "allow", "The name of the OPA rule for which opa-openshift should provide a result, see https://www.openpolicyagent.org/docs/latest/policy-language/#rules.") //nolint:lll
 	flag.StringVar(&cfg.Opa.Matcher, "opa.matcher", "", "The label key of the OPA label matcher returned to the requesting client.")
 	flag.StringVar(&cfg.Opa.MatcherSkipTenants, "opa.skip-tenants", "", "Tenants for which the label matcher should not be set as comma-separated values.")
+	flag.StringVar(&cfg.Opa.MatcherAdminGroups, "opa.admin-groups", "", "Groups which should be treated as admins and cause the matcher to be omitted.")
 
 	// Memcached flags
 	flag.StringSliceVar(&cfg.Memcached.Servers, "memcached", nil, "One or more Memcached server addresses.")
