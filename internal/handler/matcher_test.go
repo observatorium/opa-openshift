@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"testing"
+
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMatcherForRequest(t *testing.T) {
