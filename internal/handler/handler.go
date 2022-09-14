@@ -31,8 +31,8 @@ type dataRequestV1 struct {
 func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Config) http.HandlerFunc {
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
-	matcher := cfg.Opa.Matcher
 	debugToken := cfg.DebugToken
+	matcherForRequest := createMatcherFunc(cfg.Opa)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -97,6 +97,8 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 			return
 		}
+
+		matcher := matcherForRequest(req.Input.Tenant, req.Input.Groups)
 
 		a := authorizer.New(oc, l, c, matcher)
 
