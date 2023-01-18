@@ -1,70 +1,81 @@
-package handler
+package config
 
 import (
 	"testing"
 
-	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMatcherForRequest(t *testing.T) {
 	tt := []struct {
 		desc        string
-		opaConfig   config.OPAConfig
+		opaConfig   OPAConfig
 		tenant      string
 		groups      []string
-		wantMatcher string
+		wantMatcher []string
 	}{
 		{
 			desc:        "empty matcher",
-			opaConfig:   config.OPAConfig{},
+			opaConfig:   OPAConfig{},
 			tenant:      "",
 			groups:      []string{},
-			wantMatcher: "",
+			wantMatcher: nil,
 		},
 		{
 			desc: "normal",
-			opaConfig: config.OPAConfig{
+			opaConfig: OPAConfig{
 				Matcher:            "test-matcher",
 				MatcherSkipTenants: "tenantB,tenantC",
 				MatcherAdminGroups: "admin-group,other-admin-group",
 			},
 			tenant:      "tenantA",
 			groups:      []string{"authenticated"},
-			wantMatcher: "test-matcher",
+			wantMatcher: []string{"test-matcher"},
+		},
+		{
+			desc: "multi-keys",
+			opaConfig: OPAConfig{
+				Matcher:            "test-matcher1,test-matcher2",
+				MatchersLogicalOp:  string(LogicalOr),
+				MatcherSkipTenants: "tenantB,tenantC",
+				MatcherAdminGroups: "admin-group,other-admin-group",
+			},
+			tenant:      "tenantA",
+			groups:      []string{"authenticated"},
+			wantMatcher: []string{"test-matcher1", "test-matcher2"},
 		},
 		{
 			desc: "skip empty group",
-			opaConfig: config.OPAConfig{
+			opaConfig: OPAConfig{
 				Matcher:            "test-matcher",
 				MatcherSkipTenants: "tenantB,tenantC",
 				MatcherAdminGroups: "admin-group,,other-admin-group",
 			},
 			tenant:      "tenantA",
 			groups:      []string{""},
-			wantMatcher: "test-matcher",
+			wantMatcher: []string{"test-matcher"},
 		},
 		{
 			desc: "tenant skipped",
-			opaConfig: config.OPAConfig{
+			opaConfig: OPAConfig{
 				Matcher:            "test-matcher",
 				MatcherSkipTenants: "tenantB,tenantC",
 				MatcherAdminGroups: "admin-group,other-admin-group",
 			},
 			tenant:      "tenantB",
 			groups:      []string{"authenticated"},
-			wantMatcher: "",
+			wantMatcher: nil,
 		},
 		{
 			desc: "user is admin",
-			opaConfig: config.OPAConfig{
+			opaConfig: OPAConfig{
 				Matcher:            "test-matcher",
 				MatcherSkipTenants: "tenantB,tenantC",
 				MatcherAdminGroups: "admin-group,other-admin-group",
 			},
 			tenant:      "tenantA",
 			groups:      []string{"admin-group"},
-			wantMatcher: "",
+			wantMatcher: nil,
 		},
 	}
 
@@ -73,11 +84,11 @@ func TestMatcherForRequest(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			matcherForRequest := createMatcherFunc(tc.opaConfig)
+			matcher := tc.opaConfig.ToMatcher()
 
-			matcher := matcherForRequest(tc.tenant, tc.groups)
+			matcherForRequest := matcher.ForRequest(tc.tenant, tc.groups)
 
-			require.Equal(t, tc.wantMatcher, matcher)
+			require.Equal(t, tc.wantMatcher, matcherForRequest.Keys)
 		})
 	}
 }

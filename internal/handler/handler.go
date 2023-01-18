@@ -32,7 +32,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
 	debugToken := cfg.DebugToken
-	matcherForRequest := createMatcherFunc(cfg.Opa)
+	matcher := cfg.Opa.ToMatcher()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -98,9 +98,9 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
-		matcher := matcherForRequest(req.Input.Tenant, req.Input.Groups)
+		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
 
-		a := authorizer.New(oc, l, c, matcher)
+		a := authorizer.New(oc, l, c, matcherForRequest)
 
 		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
 		if err != nil {
