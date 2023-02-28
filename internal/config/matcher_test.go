@@ -36,7 +36,7 @@ func TestMatcherForRequest(t *testing.T) {
 			desc: "multi-keys",
 			opaConfig: OPAConfig{
 				Matcher:            "test-matcher1,test-matcher2",
-				MatchersLogicalOp:  string(LogicalOr),
+				MatcherOp:          string(MatcherOr),
 				MatcherSkipTenants: "tenantB,tenantC",
 				MatcherAdminGroups: "admin-group,other-admin-group",
 			},

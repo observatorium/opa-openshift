@@ -34,7 +34,7 @@ type OPAConfig struct {
 	Pkg                string
 	Rule               string
 	Matcher            string
-	MatchersLogicalOp  string
+	MatcherOp          string
 	MatcherSkipTenants string
 	MatcherAdminGroups string
 }
@@ -102,11 +102,10 @@ func ParseFlags() (*Config, error) {
 	mappingsRaw := flag.StringSlice("openshift.mappings", nil, "A map of tenantIDs to resource api groups to check to apply a given role to a user, e.g. tenant-a=observatorium.openshift.io") //nolint:lll
 
 	// OPA flags
-	flag.StringVar(&cfg.Opa.Pkg, "opa.package", "", "The name of the OPA package that opa-openshift should implement, see https://www.openpolicyagent.org/docs/latest/policy-language/#packages.")                                       //nolint:lll
-	flag.StringVar(&cfg.Opa.Rule, "opa.rule", "allow", "The name of the OPA rule for which opa-openshift should provide a result, see https://www.openpolicyagent.org/docs/latest/policy-language/#rules.")                              //nolint:lll
-	flag.StringVar(&cfg.Opa.Matcher, "opa.matcher", "", "The label key of the OPA label matcher returned to the requesting client. When opa.matchers-logical-op is provided alongside, multiple coma-separated values can be provided.") //nolint:lll
-	// TODO: please advise: any other preferred way to do that?
-	flag.StringVar(&cfg.Opa.MatchersLogicalOp, "opa.matchers-logical-op", "", "When several matchers are supplied (coma-separated string), this is the logical operation to perform. Allowed values: 'and', 'or'.") //nolint:lll
+	flag.StringVar(&cfg.Opa.Pkg, "opa.package", "", "The name of the OPA package that opa-openshift should implement, see https://www.openpolicyagent.org/docs/latest/policy-language/#packages.")                              //nolint:lll
+	flag.StringVar(&cfg.Opa.Rule, "opa.rule", "allow", "The name of the OPA rule for which opa-openshift should provide a result, see https://www.openpolicyagent.org/docs/latest/policy-language/#rules.")                     //nolint:lll
+	flag.StringVar(&cfg.Opa.Matcher, "opa.matcher", "", "The label key of the OPA label matcher returned to the requesting client. When opa.matcher-op is provided alongside, multiple coma-separated values can be provided.") //nolint:lll
+	flag.StringVar(&cfg.Opa.MatcherOp, "opa.matcher-op", "", "When several matchers are supplied (coma-separated string), this is the logical operation to perform. Allowed values: 'and', 'or'.")                              //nolint:lll
 	flag.StringVar(&cfg.Opa.MatcherSkipTenants, "opa.skip-tenants", "", "Tenants for which the label matcher should not be set as comma-separated values.")
 	flag.StringVar(&cfg.Opa.MatcherAdminGroups, "opa.admin-groups", "", "Groups which should be treated as admins and cause the matcher to be omitted.")
 

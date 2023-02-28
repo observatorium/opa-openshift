@@ -24,8 +24,8 @@ type Authorizer struct {
 }
 
 type AuthzResponseData struct {
-	Matchers  []*labels.Matcher        `json:"matchers,omitempty"`
-	LogicalOp config.MatchersLogicalOp `json:"logicalOp,omitempty"`
+	Matchers  []*labels.Matcher `json:"matchers,omitempty"`
+	MatcherOp config.MatcherOp  `json:"matcherOp,omitempty"`
 }
 
 type StatusCoder interface {
@@ -111,10 +111,9 @@ func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (type
 		matchers = append(matchers, lm)
 	}
 
-	// TODO / Note: this is a breaking change. Impacts outside of our use cases?
 	data, err := json.Marshal(&AuthzResponseData{
 		Matchers:  matchers,
-		LogicalOp: matcher.LogicalOp,
+		MatcherOp: matcher.MatcherOp,
 	})
 	if err != nil {
 		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)

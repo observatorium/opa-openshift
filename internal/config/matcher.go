@@ -2,34 +2,34 @@ package config
 
 import "strings"
 
-type MatchersLogicalOp string
+type MatcherOp string
 
 const (
-	LogicalOr         = MatchersLogicalOp("or")
-	LogicalAnd        = MatchersLogicalOp("and")
+	MatcherOr         = MatcherOp("or")
+	MatcherAnd        = MatcherOp("and")
 	matchersSeparator = ","
 )
 
 type Matcher struct {
 	Keys        []string
-	LogicalOp   MatchersLogicalOp
+	MatcherOp   MatcherOp
 	skipTenants map[string]struct{}
 	adminGroups map[string]struct{}
 }
 
 func (c *OPAConfig) ToMatcher() Matcher {
 	matcherKeys := c.Matcher
-	logicalOp := MatchersLogicalOp(c.MatchersLogicalOp)
+	matcherOp := MatcherOp(c.MatcherOp)
 	skipTenants := prepareMap(c.MatcherSkipTenants)
 	adminGroups := prepareMap(c.MatcherAdminGroups)
 
 	matcher := Matcher{
-		LogicalOp:   logicalOp,
+		MatcherOp:   matcherOp,
 		skipTenants: skipTenants,
 		adminGroups: adminGroups,
 	}
 
-	if logicalOp != "" {
+	if matcherOp != "" {
 		matcher.Keys = strings.Split(matcherKeys, matchersSeparator)
 	} else if matcherKeys != "" {
 		matcher.Keys = []string{matcherKeys}
