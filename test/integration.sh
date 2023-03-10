@@ -11,6 +11,7 @@ source .bingo/variables.env
 result=1
 trap 'kill $(jobs -p); cleanup; exit $result' EXIT
 
+# shellcheck disable=SC2317
 cleanup(){
     echo "-------------------------------------------"
     echo "- Cleanup users, role and rolebindings... -"
@@ -23,7 +24,7 @@ echo "- Prepare users, role and rolebindings... -"
 echo "-------------------------------------------"
 kubectl apply -f ./test/config/openshift.yaml
 
-($DEX serve ./test/config/dex.yaml > "$LOG_DIR"/dex.lgo 2>&1) &
+($DEX serve ./test/config/dex.yaml > "$LOG_DIR"/dex.log 2>&1) &
 
 echo "-------------------------------------------"
 echo "- Waiting for Dex to come up...           -"
@@ -52,7 +53,7 @@ token=$(curl --request POST \
   --data scope="openid profile groups email" | sed 's/^{.*"id_token":[^"]*"\([^"]*\)".*}/\1/')
 
 (
-  observatorium \
+  api \
     --web.listen=0.0.0.0:8443 \
     --web.internal.listen=0.0.0.0:8448 \
     --web.healthchecks.url=http://127.0.0.1:8443 \
@@ -70,7 +71,7 @@ token=$(curl --request POST \
 
 (
   $LOKI \
-    -log.level=error \
+    -log.level=info \
     -target=all \
     -config.file=./test/config/loki.yml > "$LOG_DIR"/loki.log 2>&1
 ) &
@@ -83,7 +84,7 @@ token=$(curl --request POST \
       --openshift.mappings=audit="observatorium.openshift.io" \
       --opa.package=observatorium \
       --log.level=debug \
-      --debug.token="$(oc -n default serviceaccounts get-token the-cluster-admin)" \
+      --debug.token="$(oc create token the-cluster-admin -n default)" \
       --web.listen=:8080 > "$LOG_DIR"/opa-openshift.log 2>&1
 ) &
 
