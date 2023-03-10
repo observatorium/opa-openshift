@@ -4,8 +4,8 @@ import (
 	"context"
 
 	projectv1 "github.com/openshift/api/project/v1"
-	projectsv1 "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	applyprojectv1 "github.com/openshift/client-go/project/applyconfigurations/project/v1"
+	projectsv1 "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
