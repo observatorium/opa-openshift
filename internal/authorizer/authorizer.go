@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/observatorium/opa-openshift/internal/cache"
+	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
 	"github.com/open-policy-agent/opa/server/types"
 	"github.com/prometheus/prometheus/pkg/labels"
@@ -19,12 +20,12 @@ type Authorizer struct {
 	client  openshift.Client
 	logger  log.Logger
 	cache   cache.Cacher
-	matcher string
+	matcher *config.Matcher
 }
 
-type AuthzResponse struct {
-	Result bool   `json:"result"`
-	Data   string `json:"data,omitempty"`
+type AuthzResponseData struct {
+	Matchers  []*labels.Matcher `json:"matchers,omitempty"`
+	MatcherOp config.MatcherOp  `json:"matcherOp,omitempty"`
 }
 
 type StatusCoder interface {
@@ -40,7 +41,7 @@ func (s *StatusCodeError) StatusCode() int {
 	return s.SC
 }
 
-func New(c openshift.Client, l log.Logger, cc cache.Cacher, matcher string) *Authorizer {
+func New(c openshift.Client, l log.Logger, cc cache.Cacher, matcher *config.Matcher) *Authorizer {
 	return &Authorizer{client: c, logger: l, cache: cc, matcher: matcher}
 }
 
@@ -92,23 +93,28 @@ func (a *Authorizer) Authorize(
 	return res, nil
 }
 
-func newDataResponseV1(allowed bool, ns []string, matcher string) (types.DataResponseV1, error) {
+func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (types.DataResponseV1, error) {
 	var res interface{}
-	if matcher == "" {
+	if matcher.IsEmpty() {
 		res = allowed
 
 		//nolint:exhaustivestruct
 		return types.DataResponseV1{Result: &res}, nil
 	}
 
-	lm, err := labels.NewMatcher(labels.MatchRegexp, matcher, strings.Join(ns, "|"))
-	if err != nil {
-		return types.DataResponseV1{}, fmt.Errorf("failed to create new matcher: %w", err)
+	matchers := []*labels.Matcher{}
+	for _, key := range matcher.Keys {
+		lm, err := labels.NewMatcher(labels.MatchRegexp, key, strings.Join(ns, "|"))
+		if err != nil {
+			return types.DataResponseV1{}, fmt.Errorf("failed to create new matcher: %w", err)
+		}
+		matchers = append(matchers, lm)
 	}
 
-	matchers := []*labels.Matcher{lm}
-
-	data, err := json.Marshal(&matchers)
+	data, err := json.Marshal(&AuthzResponseData{
+		Matchers:  matchers,
+		MatcherOp: matcher.MatcherOp,
+	})
 	if err != nil {
 		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)
 	}
