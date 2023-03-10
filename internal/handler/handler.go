@@ -2,13 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/observatorium/api/opa"
-	"github.com/observatorium/api/rbac"
 	"github.com/observatorium/opa-openshift/internal/authorizer"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
@@ -23,8 +21,26 @@ const (
 	xForwardedAccessTokenHeader = "X-Forwarded-Access-Token" //nolint:gosec
 )
 
+// Permission is an Observatorium RBAC permission.
+type Permission string
+
+const (
+	// Write gives access to write data to a tenant.
+	Write Permission = "write"
+	// Read gives access to read data from a tenant.
+	Read Permission = "read"
+)
+
+type Input struct {
+	Groups     []string   `json:"groups"`
+	Permission Permission `json:"permission"`
+	Resource   string     `json:"resource"`
+	Subject    string     `json:"subject"`
+	Tenant     string     `json:"tenant"`
+}
+
 type dataRequestV1 struct {
-	Input opa.Input `json:"input"`
+	Input Input `json:"input"`
 }
 
 //nolint:cyclop,gocognit
@@ -40,7 +56,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return //nolint:nlreturn
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "failed to read body", http.StatusInternalServerError)
 			return //nolint:nlreturn
@@ -69,9 +85,9 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 		var verb string
 
 		switch req.Input.Permission {
-		case rbac.Read:
+		case Read:
 			verb = getVerb
-		case rbac.Write:
+		case Write:
 			verb = createVerb
 		default:
 			http.Error(w, "unknown permission", http.StatusBadRequest)

@@ -4,7 +4,6 @@ import (
 	"context"
 	stdtls "crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	stdlog "log"
 	"net/http"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"github.com/metalmatze/signal/healthcheck"
 	"github.com/metalmatze/signal/internalserver"
 	"github.com/metalmatze/signal/server/signalhttp"
-	"github.com/observatorium/api/tls"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/handler"
@@ -89,7 +87,7 @@ func main() {
 		}
 
 		if cfg.TLS.InternalServerCAFile != "" {
-			caCert, err := ioutil.ReadFile(cfg.TLS.InternalServerCAFile)
+			caCert, err := os.ReadFile(cfg.TLS.InternalServerCAFile)
 			if err != nil {
 				stdlog.Fatalf("failed to initialize healthcheck server TLS CA: %v", err)
 			}
@@ -127,7 +125,7 @@ func main() {
 		})
 	}
 	{
-		tlsConfig, err := tls.NewServerConfig(
+		tlsConfig, err := config.NewServerConfig(
 			log.With(logger, "protocol", "HTTP"),
 			cfg.TLS.ServerCertFile,
 			cfg.TLS.ServerKeyFile,
@@ -163,7 +161,7 @@ func main() {
 	}
 
 	{
-		tlsConfig, err := tls.NewServerConfig(
+		tlsConfig, err := config.NewServerConfig(
 			log.With(logger, "protocol", "HTTP"),
 			cfg.TLS.InternalServerCertFile,
 			cfg.TLS.InternalServerKeyFile,

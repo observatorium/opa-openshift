@@ -17,10 +17,10 @@ VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
 VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
 DOCKER_REPO ?= quay.io/observatorium/opa-openshift
 
-OBSERVATORIUM ?= $(BIN_DIR)/observatorium
+OBSERVATORIUM ?= $(BIN_DIR)/api
 SHELLCHECK ?= $(BIN_DIR)/shellcheck
 
-GENERATE_TLS_CERT ?= $(BIN_DIR)/generate-tls-cert
+GENERATE_TLS_CERT ?= $(BIN_DIR)/tls
 SERVER_CERT ?= $(CERT_DIR)/server.pem
 
 ifeq (,$(shell which podman 2>/dev/null))
@@ -91,13 +91,13 @@ clean:
 
 .PHONY: container
 container: Dockerfile
-	$(OCI_BIN) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
+	@$(OCI_BIN) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
 		--build-arg VERSION="$(VERSION)" \
 		--build-arg VCS_REF="$(VCS_REF)" \
 		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
 		--build-arg DOCKERFILE_PATH="/Dockerfile" \
 		-t $(DOCKER_REPO):$(VCS_BRANCH)-$(BUILD_DATE)-$(VERSION) .
-	$(OCI_BIN) tag $(DOCKER_REPO):$(VCS_BRANCH)-$(BUILD_DATE)-$(VERSION) $(DOCKER_REPO):latest
+	@$(OCI_BIN) tag $(DOCKER_REPO):$(VCS_BRANCH)-$(BUILD_DATE)-$(VERSION) $(DOCKER_REPO):latest
 
 .PHONY: container-push
 container-push: container
@@ -108,9 +108,9 @@ container-push: container
 container-release: VERSION_TAG = $(strip $(shell [ -d .git ] && git tag --points-at HEAD))
 container-release: container
 	# https://git-scm.com/docs/git-tag#Documentation/git-tag.txt---points-atltobjectgt
-	@docker tag $(DOCKER_REPO):$(VCS_BRANCH)-$(BUILD_DATE)-$(VERSION) $(DOCKER_REPO):$(VERSION_TAG)
-	docker push $(DOCKER_REPO):$(VERSION_TAG)
-	docker push $(DOCKER_REPO):latest
+	@$(OCI_BIN) tag $(DOCKER_REPO):$(VCS_BRANCH)-$(BUILD_DATE)-$(VERSION) $(DOCKER_REPO):$(VERSION_TAG)
+	$(OCI_BIN) push $(DOCKER_REPO):$(VERSION_TAG)
+	$(OCI_BIN) push $(DOCKER_REPO):latest
 
 .PHONY: integration-test-dependencies
 integration-test-dependencies: $(LOG_DIR) $(DEX) $(LOKI) $(UP) $(OBSERVATORIUM)
@@ -128,11 +128,11 @@ $(LOG_DIR):
 	mkdir -p $@
 
 $(OBSERVATORIUM): | $(BIN_DIR)
-	go build -o $@ github.com/observatorium/api
+	GOBIN=$(BIN_DIR) go install github.com/observatorium/api@main
 
 # A thin wrapper around github.com/cloudflare/cfssl
 $(GENERATE_TLS_CERT): | $(BIN_DIR)
-	go build -tags tools -o $@ github.com/observatorium/api/test/tls
+	GOBIN=$(BIN_DIR) go install -tags tools github.com/observatorium/api/test/tls@2458175c6c2043fd5093da3e6b7ad623979d21c0
 
 $(SERVER_CERT): | $(GENERATE_TLS_CERT) $(CERT_DIR)
 	cd $(CERT_DIR) && $(GENERATE_TLS_CERT)
