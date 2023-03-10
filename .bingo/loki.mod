@@ -38,4 +38,4 @@ replace github.com/go-kit/log => github.com/dannykopping/go-kit-log v0.2.2-0.202
 
 exclude k8s.io/client-go v8.0.0+incompatible
 
-require github.com/grafana/loki v1.6.2-0.20230201101921-a880ea3bf456 // cmd/loki
+require github.com/grafana/loki v1.6.2-0.20230224170420-98421b0c0187 // cmd/loki

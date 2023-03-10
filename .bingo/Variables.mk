@@ -47,11 +47,11 @@ $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
 	@echo "(re)installing $(GOBIN)/golangci-lint-v1.51.2"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v1.51.2 "github.com/golangci/golangci-lint/cmd/golangci-lint"
 
-LOKI := $(GOBIN)/loki-v1.6.2-0.20230201101921-a880ea3bf456
+LOKI := $(GOBIN)/loki-v1.6.2-0.20230224170420-98421b0c0187
 $(LOKI): $(BINGO_DIR)/loki.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/loki-v1.6.2-0.20230201101921-a880ea3bf456"
-	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=loki.mod -o=$(GOBIN)/loki-v1.6.2-0.20230201101921-a880ea3bf456 "github.com/grafana/loki/cmd/loki"
+	@echo "(re)installing $(GOBIN)/loki-v1.6.2-0.20230224170420-98421b0c0187"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=loki.mod -o=$(GOBIN)/loki-v1.6.2-0.20230224170420-98421b0c0187 "github.com/grafana/loki/cmd/loki"
 
 UP := $(GOBIN)/up-v0.0.0-20210212114231-03ef2f2bb89b
 $(UP): $(BINGO_DIR)/up.mod
