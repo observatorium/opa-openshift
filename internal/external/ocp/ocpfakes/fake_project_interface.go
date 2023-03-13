@@ -7,18 +7,49 @@ import (
 
 	"github.com/observatorium/opa-openshift/internal/external/ocp"
 	v1 "github.com/openshift/api/project/v1"
-	v1a "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1a "github.com/openshift/client-go/project/applyconfigurations/project/v1"
+	v1b "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
 type FakeProjectInterface struct {
-	CreateStub        func(context.Context, *v1.Project, v1a.CreateOptions) (*v1.Project, error)
+	ApplyStub        func(context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) (*v1.Project, error)
+	applyMutex       sync.RWMutex
+	applyArgsForCall []struct {
+		arg1 context.Context
+		arg2 *v1a.ProjectApplyConfiguration
+		arg3 v1b.ApplyOptions
+	}
+	applyReturns struct {
+		result1 *v1.Project
+		result2 error
+	}
+	applyReturnsOnCall map[int]struct {
+		result1 *v1.Project
+		result2 error
+	}
+	ApplyStatusStub        func(context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) (*v1.Project, error)
+	applyStatusMutex       sync.RWMutex
+	applyStatusArgsForCall []struct {
+		arg1 context.Context
+		arg2 *v1a.ProjectApplyConfiguration
+		arg3 v1b.ApplyOptions
+	}
+	applyStatusReturns struct {
+		result1 *v1.Project
+		result2 error
+	}
+	applyStatusReturnsOnCall map[int]struct {
+		result1 *v1.Project
+		result2 error
+	}
+	CreateStub        func(context.Context, *v1.Project, v1b.CreateOptions) (*v1.Project, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.CreateOptions
+		arg3 v1b.CreateOptions
 	}
 	createReturns struct {
 		result1 *v1.Project
@@ -28,12 +59,12 @@ type FakeProjectInterface struct {
 		result1 *v1.Project
 		result2 error
 	}
-	DeleteStub        func(context.Context, string, v1a.DeleteOptions) error
+	DeleteStub        func(context.Context, string, v1b.DeleteOptions) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
-		arg3 v1a.DeleteOptions
+		arg3 v1b.DeleteOptions
 	}
 	deleteReturns struct {
 		result1 error
@@ -41,12 +72,12 @@ type FakeProjectInterface struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DeleteCollectionStub        func(context.Context, v1a.DeleteOptions, v1a.ListOptions) error
+	DeleteCollectionStub        func(context.Context, v1b.DeleteOptions, v1b.ListOptions) error
 	deleteCollectionMutex       sync.RWMutex
 	deleteCollectionArgsForCall []struct {
 		arg1 context.Context
-		arg2 v1a.DeleteOptions
-		arg3 v1a.ListOptions
+		arg2 v1b.DeleteOptions
+		arg3 v1b.ListOptions
 	}
 	deleteCollectionReturns struct {
 		result1 error
@@ -54,12 +85,12 @@ type FakeProjectInterface struct {
 	deleteCollectionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetStub        func(context.Context, string, v1a.GetOptions) (*v1.Project, error)
+	GetStub        func(context.Context, string, v1b.GetOptions) (*v1.Project, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
-		arg3 v1a.GetOptions
+		arg3 v1b.GetOptions
 	}
 	getReturns struct {
 		result1 *v1.Project
@@ -69,11 +100,11 @@ type FakeProjectInterface struct {
 		result1 *v1.Project
 		result2 error
 	}
-	ListStub        func(context.Context, v1a.ListOptions) (*v1.ProjectList, error)
+	ListStub        func(context.Context, v1b.ListOptions) (*v1.ProjectList, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		arg1 context.Context
-		arg2 v1a.ListOptions
+		arg2 v1b.ListOptions
 	}
 	listReturns struct {
 		result1 *v1.ProjectList
@@ -83,14 +114,14 @@ type FakeProjectInterface struct {
 		result1 *v1.ProjectList
 		result2 error
 	}
-	PatchStub        func(context.Context, string, types.PatchType, []byte, v1a.PatchOptions, ...string) (*v1.Project, error)
+	PatchStub        func(context.Context, string, types.PatchType, []byte, v1b.PatchOptions, ...string) (*v1.Project, error)
 	patchMutex       sync.RWMutex
 	patchArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 types.PatchType
 		arg4 []byte
-		arg5 v1a.PatchOptions
+		arg5 v1b.PatchOptions
 		arg6 []string
 	}
 	patchReturns struct {
@@ -101,12 +132,12 @@ type FakeProjectInterface struct {
 		result1 *v1.Project
 		result2 error
 	}
-	UpdateStub        func(context.Context, *v1.Project, v1a.UpdateOptions) (*v1.Project, error)
+	UpdateStub        func(context.Context, *v1.Project, v1b.UpdateOptions) (*v1.Project, error)
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.UpdateOptions
+		arg3 v1b.UpdateOptions
 	}
 	updateReturns struct {
 		result1 *v1.Project
@@ -116,12 +147,12 @@ type FakeProjectInterface struct {
 		result1 *v1.Project
 		result2 error
 	}
-	UpdateStatusStub        func(context.Context, *v1.Project, v1a.UpdateOptions) (*v1.Project, error)
+	UpdateStatusStub        func(context.Context, *v1.Project, v1b.UpdateOptions) (*v1.Project, error)
 	updateStatusMutex       sync.RWMutex
 	updateStatusArgsForCall []struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.UpdateOptions
+		arg3 v1b.UpdateOptions
 	}
 	updateStatusReturns struct {
 		result1 *v1.Project
@@ -131,11 +162,11 @@ type FakeProjectInterface struct {
 		result1 *v1.Project
 		result2 error
 	}
-	WatchStub        func(context.Context, v1a.ListOptions) (watch.Interface, error)
+	WatchStub        func(context.Context, v1b.ListOptions) (watch.Interface, error)
 	watchMutex       sync.RWMutex
 	watchArgsForCall []struct {
 		arg1 context.Context
-		arg2 v1a.ListOptions
+		arg2 v1b.ListOptions
 	}
 	watchReturns struct {
 		result1 watch.Interface
@@ -149,13 +180,145 @@ type FakeProjectInterface struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProjectInterface) Create(arg1 context.Context, arg2 *v1.Project, arg3 v1a.CreateOptions) (*v1.Project, error) {
+func (fake *FakeProjectInterface) Apply(arg1 context.Context, arg2 *v1a.ProjectApplyConfiguration, arg3 v1b.ApplyOptions) (*v1.Project, error) {
+	fake.applyMutex.Lock()
+	ret, specificReturn := fake.applyReturnsOnCall[len(fake.applyArgsForCall)]
+	fake.applyArgsForCall = append(fake.applyArgsForCall, struct {
+		arg1 context.Context
+		arg2 *v1a.ProjectApplyConfiguration
+		arg3 v1b.ApplyOptions
+	}{arg1, arg2, arg3})
+	stub := fake.ApplyStub
+	fakeReturns := fake.applyReturns
+	fake.recordInvocation("Apply", []interface{}{arg1, arg2, arg3})
+	fake.applyMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeProjectInterface) ApplyCallCount() int {
+	fake.applyMutex.RLock()
+	defer fake.applyMutex.RUnlock()
+	return len(fake.applyArgsForCall)
+}
+
+func (fake *FakeProjectInterface) ApplyCalls(stub func(context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) (*v1.Project, error)) {
+	fake.applyMutex.Lock()
+	defer fake.applyMutex.Unlock()
+	fake.ApplyStub = stub
+}
+
+func (fake *FakeProjectInterface) ApplyArgsForCall(i int) (context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) {
+	fake.applyMutex.RLock()
+	defer fake.applyMutex.RUnlock()
+	argsForCall := fake.applyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeProjectInterface) ApplyReturns(result1 *v1.Project, result2 error) {
+	fake.applyMutex.Lock()
+	defer fake.applyMutex.Unlock()
+	fake.ApplyStub = nil
+	fake.applyReturns = struct {
+		result1 *v1.Project
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProjectInterface) ApplyReturnsOnCall(i int, result1 *v1.Project, result2 error) {
+	fake.applyMutex.Lock()
+	defer fake.applyMutex.Unlock()
+	fake.ApplyStub = nil
+	if fake.applyReturnsOnCall == nil {
+		fake.applyReturnsOnCall = make(map[int]struct {
+			result1 *v1.Project
+			result2 error
+		})
+	}
+	fake.applyReturnsOnCall[i] = struct {
+		result1 *v1.Project
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProjectInterface) ApplyStatus(arg1 context.Context, arg2 *v1a.ProjectApplyConfiguration, arg3 v1b.ApplyOptions) (*v1.Project, error) {
+	fake.applyStatusMutex.Lock()
+	ret, specificReturn := fake.applyStatusReturnsOnCall[len(fake.applyStatusArgsForCall)]
+	fake.applyStatusArgsForCall = append(fake.applyStatusArgsForCall, struct {
+		arg1 context.Context
+		arg2 *v1a.ProjectApplyConfiguration
+		arg3 v1b.ApplyOptions
+	}{arg1, arg2, arg3})
+	stub := fake.ApplyStatusStub
+	fakeReturns := fake.applyStatusReturns
+	fake.recordInvocation("ApplyStatus", []interface{}{arg1, arg2, arg3})
+	fake.applyStatusMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeProjectInterface) ApplyStatusCallCount() int {
+	fake.applyStatusMutex.RLock()
+	defer fake.applyStatusMutex.RUnlock()
+	return len(fake.applyStatusArgsForCall)
+}
+
+func (fake *FakeProjectInterface) ApplyStatusCalls(stub func(context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) (*v1.Project, error)) {
+	fake.applyStatusMutex.Lock()
+	defer fake.applyStatusMutex.Unlock()
+	fake.ApplyStatusStub = stub
+}
+
+func (fake *FakeProjectInterface) ApplyStatusArgsForCall(i int) (context.Context, *v1a.ProjectApplyConfiguration, v1b.ApplyOptions) {
+	fake.applyStatusMutex.RLock()
+	defer fake.applyStatusMutex.RUnlock()
+	argsForCall := fake.applyStatusArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeProjectInterface) ApplyStatusReturns(result1 *v1.Project, result2 error) {
+	fake.applyStatusMutex.Lock()
+	defer fake.applyStatusMutex.Unlock()
+	fake.ApplyStatusStub = nil
+	fake.applyStatusReturns = struct {
+		result1 *v1.Project
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProjectInterface) ApplyStatusReturnsOnCall(i int, result1 *v1.Project, result2 error) {
+	fake.applyStatusMutex.Lock()
+	defer fake.applyStatusMutex.Unlock()
+	fake.ApplyStatusStub = nil
+	if fake.applyStatusReturnsOnCall == nil {
+		fake.applyStatusReturnsOnCall = make(map[int]struct {
+			result1 *v1.Project
+			result2 error
+		})
+	}
+	fake.applyStatusReturnsOnCall[i] = struct {
+		result1 *v1.Project
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProjectInterface) Create(arg1 context.Context, arg2 *v1.Project, arg3 v1b.CreateOptions) (*v1.Project, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.CreateOptions
+		arg3 v1b.CreateOptions
 	}{arg1, arg2, arg3})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
@@ -176,13 +339,13 @@ func (fake *FakeProjectInterface) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeProjectInterface) CreateCalls(stub func(context.Context, *v1.Project, v1a.CreateOptions) (*v1.Project, error)) {
+func (fake *FakeProjectInterface) CreateCalls(stub func(context.Context, *v1.Project, v1b.CreateOptions) (*v1.Project, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeProjectInterface) CreateArgsForCall(i int) (context.Context, *v1.Project, v1a.CreateOptions) {
+func (fake *FakeProjectInterface) CreateArgsForCall(i int) (context.Context, *v1.Project, v1b.CreateOptions) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
@@ -215,13 +378,13 @@ func (fake *FakeProjectInterface) CreateReturnsOnCall(i int, result1 *v1.Project
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) Delete(arg1 context.Context, arg2 string, arg3 v1a.DeleteOptions) error {
+func (fake *FakeProjectInterface) Delete(arg1 context.Context, arg2 string, arg3 v1b.DeleteOptions) error {
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
-		arg3 v1a.DeleteOptions
+		arg3 v1b.DeleteOptions
 	}{arg1, arg2, arg3})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
@@ -242,13 +405,13 @@ func (fake *FakeProjectInterface) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *FakeProjectInterface) DeleteCalls(stub func(context.Context, string, v1a.DeleteOptions) error) {
+func (fake *FakeProjectInterface) DeleteCalls(stub func(context.Context, string, v1b.DeleteOptions) error) {
 	fake.deleteMutex.Lock()
 	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = stub
 }
 
-func (fake *FakeProjectInterface) DeleteArgsForCall(i int) (context.Context, string, v1a.DeleteOptions) {
+func (fake *FakeProjectInterface) DeleteArgsForCall(i int) (context.Context, string, v1b.DeleteOptions) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	argsForCall := fake.deleteArgsForCall[i]
@@ -278,13 +441,13 @@ func (fake *FakeProjectInterface) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeProjectInterface) DeleteCollection(arg1 context.Context, arg2 v1a.DeleteOptions, arg3 v1a.ListOptions) error {
+func (fake *FakeProjectInterface) DeleteCollection(arg1 context.Context, arg2 v1b.DeleteOptions, arg3 v1b.ListOptions) error {
 	fake.deleteCollectionMutex.Lock()
 	ret, specificReturn := fake.deleteCollectionReturnsOnCall[len(fake.deleteCollectionArgsForCall)]
 	fake.deleteCollectionArgsForCall = append(fake.deleteCollectionArgsForCall, struct {
 		arg1 context.Context
-		arg2 v1a.DeleteOptions
-		arg3 v1a.ListOptions
+		arg2 v1b.DeleteOptions
+		arg3 v1b.ListOptions
 	}{arg1, arg2, arg3})
 	stub := fake.DeleteCollectionStub
 	fakeReturns := fake.deleteCollectionReturns
@@ -305,13 +468,13 @@ func (fake *FakeProjectInterface) DeleteCollectionCallCount() int {
 	return len(fake.deleteCollectionArgsForCall)
 }
 
-func (fake *FakeProjectInterface) DeleteCollectionCalls(stub func(context.Context, v1a.DeleteOptions, v1a.ListOptions) error) {
+func (fake *FakeProjectInterface) DeleteCollectionCalls(stub func(context.Context, v1b.DeleteOptions, v1b.ListOptions) error) {
 	fake.deleteCollectionMutex.Lock()
 	defer fake.deleteCollectionMutex.Unlock()
 	fake.DeleteCollectionStub = stub
 }
 
-func (fake *FakeProjectInterface) DeleteCollectionArgsForCall(i int) (context.Context, v1a.DeleteOptions, v1a.ListOptions) {
+func (fake *FakeProjectInterface) DeleteCollectionArgsForCall(i int) (context.Context, v1b.DeleteOptions, v1b.ListOptions) {
 	fake.deleteCollectionMutex.RLock()
 	defer fake.deleteCollectionMutex.RUnlock()
 	argsForCall := fake.deleteCollectionArgsForCall[i]
@@ -341,13 +504,13 @@ func (fake *FakeProjectInterface) DeleteCollectionReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
-func (fake *FakeProjectInterface) Get(arg1 context.Context, arg2 string, arg3 v1a.GetOptions) (*v1.Project, error) {
+func (fake *FakeProjectInterface) Get(arg1 context.Context, arg2 string, arg3 v1b.GetOptions) (*v1.Project, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
-		arg3 v1a.GetOptions
+		arg3 v1b.GetOptions
 	}{arg1, arg2, arg3})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
@@ -368,13 +531,13 @@ func (fake *FakeProjectInterface) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeProjectInterface) GetCalls(stub func(context.Context, string, v1a.GetOptions) (*v1.Project, error)) {
+func (fake *FakeProjectInterface) GetCalls(stub func(context.Context, string, v1b.GetOptions) (*v1.Project, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeProjectInterface) GetArgsForCall(i int) (context.Context, string, v1a.GetOptions) {
+func (fake *FakeProjectInterface) GetArgsForCall(i int) (context.Context, string, v1b.GetOptions) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
@@ -407,12 +570,12 @@ func (fake *FakeProjectInterface) GetReturnsOnCall(i int, result1 *v1.Project, r
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) List(arg1 context.Context, arg2 v1a.ListOptions) (*v1.ProjectList, error) {
+func (fake *FakeProjectInterface) List(arg1 context.Context, arg2 v1b.ListOptions) (*v1.ProjectList, error) {
 	fake.listMutex.Lock()
 	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		arg1 context.Context
-		arg2 v1a.ListOptions
+		arg2 v1b.ListOptions
 	}{arg1, arg2})
 	stub := fake.ListStub
 	fakeReturns := fake.listReturns
@@ -433,13 +596,13 @@ func (fake *FakeProjectInterface) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
-func (fake *FakeProjectInterface) ListCalls(stub func(context.Context, v1a.ListOptions) (*v1.ProjectList, error)) {
+func (fake *FakeProjectInterface) ListCalls(stub func(context.Context, v1b.ListOptions) (*v1.ProjectList, error)) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = stub
 }
 
-func (fake *FakeProjectInterface) ListArgsForCall(i int) (context.Context, v1a.ListOptions) {
+func (fake *FakeProjectInterface) ListArgsForCall(i int) (context.Context, v1b.ListOptions) {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
 	argsForCall := fake.listArgsForCall[i]
@@ -472,7 +635,7 @@ func (fake *FakeProjectInterface) ListReturnsOnCall(i int, result1 *v1.ProjectLi
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) Patch(arg1 context.Context, arg2 string, arg3 types.PatchType, arg4 []byte, arg5 v1a.PatchOptions, arg6 ...string) (*v1.Project, error) {
+func (fake *FakeProjectInterface) Patch(arg1 context.Context, arg2 string, arg3 types.PatchType, arg4 []byte, arg5 v1b.PatchOptions, arg6 ...string) (*v1.Project, error) {
 	var arg4Copy []byte
 	if arg4 != nil {
 		arg4Copy = make([]byte, len(arg4))
@@ -485,7 +648,7 @@ func (fake *FakeProjectInterface) Patch(arg1 context.Context, arg2 string, arg3 
 		arg2 string
 		arg3 types.PatchType
 		arg4 []byte
-		arg5 v1a.PatchOptions
+		arg5 v1b.PatchOptions
 		arg6 []string
 	}{arg1, arg2, arg3, arg4Copy, arg5, arg6})
 	stub := fake.PatchStub
@@ -507,13 +670,13 @@ func (fake *FakeProjectInterface) PatchCallCount() int {
 	return len(fake.patchArgsForCall)
 }
 
-func (fake *FakeProjectInterface) PatchCalls(stub func(context.Context, string, types.PatchType, []byte, v1a.PatchOptions, ...string) (*v1.Project, error)) {
+func (fake *FakeProjectInterface) PatchCalls(stub func(context.Context, string, types.PatchType, []byte, v1b.PatchOptions, ...string) (*v1.Project, error)) {
 	fake.patchMutex.Lock()
 	defer fake.patchMutex.Unlock()
 	fake.PatchStub = stub
 }
 
-func (fake *FakeProjectInterface) PatchArgsForCall(i int) (context.Context, string, types.PatchType, []byte, v1a.PatchOptions, []string) {
+func (fake *FakeProjectInterface) PatchArgsForCall(i int) (context.Context, string, types.PatchType, []byte, v1b.PatchOptions, []string) {
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
 	argsForCall := fake.patchArgsForCall[i]
@@ -546,13 +709,13 @@ func (fake *FakeProjectInterface) PatchReturnsOnCall(i int, result1 *v1.Project,
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) Update(arg1 context.Context, arg2 *v1.Project, arg3 v1a.UpdateOptions) (*v1.Project, error) {
+func (fake *FakeProjectInterface) Update(arg1 context.Context, arg2 *v1.Project, arg3 v1b.UpdateOptions) (*v1.Project, error) {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.UpdateOptions
+		arg3 v1b.UpdateOptions
 	}{arg1, arg2, arg3})
 	stub := fake.UpdateStub
 	fakeReturns := fake.updateReturns
@@ -573,13 +736,13 @@ func (fake *FakeProjectInterface) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeProjectInterface) UpdateCalls(stub func(context.Context, *v1.Project, v1a.UpdateOptions) (*v1.Project, error)) {
+func (fake *FakeProjectInterface) UpdateCalls(stub func(context.Context, *v1.Project, v1b.UpdateOptions) (*v1.Project, error)) {
 	fake.updateMutex.Lock()
 	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = stub
 }
 
-func (fake *FakeProjectInterface) UpdateArgsForCall(i int) (context.Context, *v1.Project, v1a.UpdateOptions) {
+func (fake *FakeProjectInterface) UpdateArgsForCall(i int) (context.Context, *v1.Project, v1b.UpdateOptions) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
 	argsForCall := fake.updateArgsForCall[i]
@@ -612,13 +775,13 @@ func (fake *FakeProjectInterface) UpdateReturnsOnCall(i int, result1 *v1.Project
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) UpdateStatus(arg1 context.Context, arg2 *v1.Project, arg3 v1a.UpdateOptions) (*v1.Project, error) {
+func (fake *FakeProjectInterface) UpdateStatus(arg1 context.Context, arg2 *v1.Project, arg3 v1b.UpdateOptions) (*v1.Project, error) {
 	fake.updateStatusMutex.Lock()
 	ret, specificReturn := fake.updateStatusReturnsOnCall[len(fake.updateStatusArgsForCall)]
 	fake.updateStatusArgsForCall = append(fake.updateStatusArgsForCall, struct {
 		arg1 context.Context
 		arg2 *v1.Project
-		arg3 v1a.UpdateOptions
+		arg3 v1b.UpdateOptions
 	}{arg1, arg2, arg3})
 	stub := fake.UpdateStatusStub
 	fakeReturns := fake.updateStatusReturns
@@ -639,13 +802,13 @@ func (fake *FakeProjectInterface) UpdateStatusCallCount() int {
 	return len(fake.updateStatusArgsForCall)
 }
 
-func (fake *FakeProjectInterface) UpdateStatusCalls(stub func(context.Context, *v1.Project, v1a.UpdateOptions) (*v1.Project, error)) {
+func (fake *FakeProjectInterface) UpdateStatusCalls(stub func(context.Context, *v1.Project, v1b.UpdateOptions) (*v1.Project, error)) {
 	fake.updateStatusMutex.Lock()
 	defer fake.updateStatusMutex.Unlock()
 	fake.UpdateStatusStub = stub
 }
 
-func (fake *FakeProjectInterface) UpdateStatusArgsForCall(i int) (context.Context, *v1.Project, v1a.UpdateOptions) {
+func (fake *FakeProjectInterface) UpdateStatusArgsForCall(i int) (context.Context, *v1.Project, v1b.UpdateOptions) {
 	fake.updateStatusMutex.RLock()
 	defer fake.updateStatusMutex.RUnlock()
 	argsForCall := fake.updateStatusArgsForCall[i]
@@ -678,12 +841,12 @@ func (fake *FakeProjectInterface) UpdateStatusReturnsOnCall(i int, result1 *v1.P
 	}{result1, result2}
 }
 
-func (fake *FakeProjectInterface) Watch(arg1 context.Context, arg2 v1a.ListOptions) (watch.Interface, error) {
+func (fake *FakeProjectInterface) Watch(arg1 context.Context, arg2 v1b.ListOptions) (watch.Interface, error) {
 	fake.watchMutex.Lock()
 	ret, specificReturn := fake.watchReturnsOnCall[len(fake.watchArgsForCall)]
 	fake.watchArgsForCall = append(fake.watchArgsForCall, struct {
 		arg1 context.Context
-		arg2 v1a.ListOptions
+		arg2 v1b.ListOptions
 	}{arg1, arg2})
 	stub := fake.WatchStub
 	fakeReturns := fake.watchReturns
@@ -704,13 +867,13 @@ func (fake *FakeProjectInterface) WatchCallCount() int {
 	return len(fake.watchArgsForCall)
 }
 
-func (fake *FakeProjectInterface) WatchCalls(stub func(context.Context, v1a.ListOptions) (watch.Interface, error)) {
+func (fake *FakeProjectInterface) WatchCalls(stub func(context.Context, v1b.ListOptions) (watch.Interface, error)) {
 	fake.watchMutex.Lock()
 	defer fake.watchMutex.Unlock()
 	fake.WatchStub = stub
 }
 
-func (fake *FakeProjectInterface) WatchArgsForCall(i int) (context.Context, v1a.ListOptions) {
+func (fake *FakeProjectInterface) WatchArgsForCall(i int) (context.Context, v1b.ListOptions) {
 	fake.watchMutex.RLock()
 	defer fake.watchMutex.RUnlock()
 	argsForCall := fake.watchArgsForCall[i]
@@ -746,6 +909,10 @@ func (fake *FakeProjectInterface) WatchReturnsOnCall(i int, result1 watch.Interf
 func (fake *FakeProjectInterface) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.applyMutex.RLock()
+	defer fake.applyMutex.RUnlock()
+	fake.applyStatusMutex.RLock()
+	defer fake.applyStatusMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	fake.deleteMutex.RLock()

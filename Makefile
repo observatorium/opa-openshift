@@ -87,6 +87,7 @@ clean:
 	-rm -rf tmp/bin
 	-rm -rf tmp/certs
 	-rm -rf tmp/logs
+	-rm -rf wal
 	-rm opa-openshift
 
 .PHONY: container
