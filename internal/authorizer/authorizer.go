@@ -2,6 +2,7 @@ package authorizer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -76,6 +77,11 @@ func (a *Authorizer) Authorize(
 	ns, err := a.client.ListNamespaces()
 	if err != nil {
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
+	}
+
+	if len(ns) == 0 {
+		// Return early if the user has no allowed namespaces, to avoid an empty namespaces list to be transformed into a single empty namespace (via `strings.Join(ns, "|")` below).
+		return types.DataResponseV1{}, &StatusCodeError{errors.New("failed to find any authorized namespace"), http.StatusUnauthorized}
 	}
 
 	res, err = newDataResponseV1(allowed, ns, a.matcher)
