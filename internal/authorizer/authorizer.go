@@ -2,7 +2,6 @@ package authorizer
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -79,11 +78,6 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 	}
 
-	if len(ns) == 0 {
-		// Return early if the user has no allowed namespaces, to avoid an empty namespaces list to be transformed into a single empty namespace (via `strings.Join(ns, "|")` below).
-		return types.DataResponseV1{}, &StatusCodeError{errors.New("failed to find any authorized namespace"), http.StatusUnauthorized}
-	}
-
 	res, err = newDataResponseV1(allowed, ns, a.matcher)
 	if err != nil {
 		return types.DataResponseV1{},
@@ -107,14 +101,18 @@ func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (type
 		//nolint:exhaustivestruct
 		return types.DataResponseV1{Result: &res}, nil
 	}
+	hasMatches := len(ns) > 0
 
 	matchers := []*labels.Matcher{}
-	for _, key := range matcher.Keys {
-		lm, err := labels.NewMatcher(labels.MatchRegexp, key, strings.Join(ns, "|"))
-		if err != nil {
-			return types.DataResponseV1{}, fmt.Errorf("failed to create new matcher: %w", err)
+	if hasMatches {
+		matcherValue := strings.Join(ns, "|")
+		for _, key := range matcher.Keys {
+			lm, err := labels.NewMatcher(labels.MatchRegexp, key, matcherValue)
+			if err != nil {
+				return types.DataResponseV1{}, fmt.Errorf("failed to create new matcher: %w", err)
+			}
+			matchers = append(matchers, lm)
 		}
-		matchers = append(matchers, lm)
 	}
 
 	data, err := json.Marshal(&AuthzResponseData{
