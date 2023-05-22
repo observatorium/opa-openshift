@@ -78,7 +78,8 @@ func (a *Authorizer) Authorize(
 		"allowed", allowed,
 	)
 
-	if verb == GetVerb {
+	switch verb {
+	case GetVerb:
 		ns, err := a.client.ListNamespaces()
 		if err != nil {
 			return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
@@ -87,14 +88,18 @@ func (a *Authorizer) Authorize(
 			// Explicitly disallow user query with no allowed namespaces
 			allowed = false
 		}
+		level.Debug(a.logger).Log("msg", "executed ListNamespaces", "allowed", allowed)
 		res, err = newDataResponseV1(allowed, ns, a.matcher)
 		if err != nil {
 			return types.DataResponseV1{},
 				&StatusCodeError{fmt.Errorf("failed to create a new authorization response: %w", err), http.StatusInternalServerError}
 		}
-	} else {
+	case CreateVerb:
 		// No namespace check needed as there won't be a query injection
 		res = minimalDataResponseV1(allowed)
+	default:
+		// Verb was already validated in handler; at this step, an unexpected verb is a bug
+		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusInternalServerError}
 	}
 
 	err = a.cache.Set(token, res)
