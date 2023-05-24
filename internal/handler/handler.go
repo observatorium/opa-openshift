@@ -15,9 +15,6 @@ import (
 )
 
 const (
-	getVerb    = "get"
-	createVerb = "create"
-
 	xForwardedAccessTokenHeader = "X-Forwarded-Access-Token" //nolint:gosec
 )
 
@@ -86,9 +83,9 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		switch req.Input.Permission {
 		case Read:
-			verb = getVerb
+			verb = authorizer.GetVerb
 		case Write:
-			verb = createVerb
+			verb = authorizer.CreateVerb
 		default:
 			http.Error(w, "unknown permission", http.StatusBadRequest)
 			return //nolint:nlreturn

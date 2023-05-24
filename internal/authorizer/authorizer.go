@@ -16,6 +16,11 @@ import (
 	"github.com/prometheus/prometheus/pkg/labels"
 )
 
+const (
+	GetVerb    = "get"
+	CreateVerb = "create"
+)
+
 type Authorizer struct {
 	client  openshift.Client
 	logger  log.Logger
@@ -73,15 +78,28 @@ func (a *Authorizer) Authorize(
 		"allowed", allowed,
 	)
 
-	ns, err := a.client.ListNamespaces()
-	if err != nil {
-		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
-	}
-
-	res, err = newDataResponseV1(allowed, ns, a.matcher)
-	if err != nil {
-		return types.DataResponseV1{},
-			&StatusCodeError{fmt.Errorf("failed to create a new authorization response: %w", err), http.StatusInternalServerError}
+	switch verb {
+	case GetVerb:
+		ns, err := a.client.ListNamespaces()
+		if err != nil {
+			return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
+		}
+		if len(ns) == 0 {
+			// Explicitly disallow a user query with no allowed namespaces
+			allowed = false
+		}
+		level.Debug(a.logger).Log("msg", "executed ListNamespaces", "allowed", allowed)
+		res, err = newDataResponseV1(allowed, ns, a.matcher)
+		if err != nil {
+			return types.DataResponseV1{},
+				&StatusCodeError{fmt.Errorf("failed to create a new authorization response: %w", err), http.StatusInternalServerError}
+		}
+	case CreateVerb:
+		// No namespace check needed as there won't be a query injection
+		res = minimalDataResponseV1(allowed)
+	default:
+		// Verb was already validated in handler; at this step, an unexpected verb is a bug
+		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusInternalServerError}
 	}
 
 	err = a.cache.Set(token, res)
@@ -93,13 +111,15 @@ func (a *Authorizer) Authorize(
 	return res, nil
 }
 
-func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (types.DataResponseV1, error) {
-	var res interface{}
-	if matcher.IsEmpty() {
-		res = allowed
+func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
+	var res interface{} = allowed
+	//nolint:exhaustivestruct
+	return types.DataResponseV1{Result: &res}
+}
 
-		//nolint:exhaustivestruct
-		return types.DataResponseV1{Result: &res}, nil
+func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (types.DataResponseV1, error) {
+	if matcher.IsEmpty() {
+		return minimalDataResponseV1(allowed), nil
 	}
 
 	matchers := []*labels.Matcher{}
@@ -119,7 +139,7 @@ func newDataResponseV1(allowed bool, ns []string, matcher *config.Matcher) (type
 		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)
 	}
 
-	res = map[string]string{
+	var res interface{} = map[string]string{
 		"allowed": strconv.FormatBool(allowed),
 		"data":    string(data),
 	}
