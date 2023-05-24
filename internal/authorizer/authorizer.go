@@ -85,7 +85,7 @@ func (a *Authorizer) Authorize(
 			return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 		}
 		if len(ns) == 0 {
-			// Explicitly disallow user query with no allowed namespaces
+			// Explicitly disallow a user query with no allowed namespaces
 			allowed = false
 		}
 		level.Debug(a.logger).Log("msg", "executed ListNamespaces", "allowed", allowed)
