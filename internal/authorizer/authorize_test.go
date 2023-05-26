@@ -17,7 +17,7 @@ type fakeClient struct {
 	nsErr      error
 }
 
-func (f *fakeClient) SubjectAccessReview(_ string, _ []string, _, _, _, _ string) (bool, error) {
+func (f *fakeClient) SubjectAccessReview(_ string, _ []string, _, _, _, _, _ string) (bool, error) {
 	return f.sarAllowed, f.sarErr
 }
 
@@ -194,6 +194,7 @@ func TestAuthorize(t *testing.T) {
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
 				"application", "logs", "loki.grafana.com",
+				[]string{}, "",
 			)
 
 			if tc.wantErr == nil {

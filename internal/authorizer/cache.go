@@ -9,13 +9,14 @@ import (
 
 func generateCacheKey(
 	token, user string, groups []string,
-	verb, resource, resourceName, apiGroup string,
+	verb, resource, resourceName, apiGroup string, namespaces []string,
+	path string,
 ) string {
 	userHash := hashUserinfo(token, user, groups)
 
 	return strings.Join([]string{
-		verb,
-		apiGroup, resourceName, resource,
+		verb, path,
+		apiGroup, resourceName, resource, strings.Join(namespaces, ":"),
 		userHash,
 	}, ",")
 }

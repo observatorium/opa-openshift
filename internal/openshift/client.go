@@ -23,7 +23,7 @@ import (
 // check authentication and authorization for
 // subjects.
 type Client interface {
-	SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup string) (bool, error)
+	SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
 	ListNamespaces() ([]string, error)
 }
 
@@ -69,16 +69,17 @@ func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, 
 
 // SubjectAccessReview requests a self subject access review from the k8s api server
 // for an authenticated user.
-func (c *client) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup string) (bool, error) {
+func (c *client) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
 	ssar := &authorizationv1.SubjectAccessReview{
 		Spec: authorizationv1.SubjectAccessReviewSpec{
 			User:   user,
 			Groups: groups,
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
-				Group:    apiGroup,
-				Resource: resource,
-				Name:     resourceName,
-				Verb:     verb,
+				Namespace: namespace,
+				Verb:      verb,
+				Group:     apiGroup,
+				Resource:  resource,
+				Name:      resourceName,
 			},
 		},
 	}
