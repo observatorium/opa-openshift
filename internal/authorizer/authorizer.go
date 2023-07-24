@@ -55,7 +55,9 @@ func (a *Authorizer) Authorize(
 	user string, groups []string,
 	verb, resource, resourceName, apiGroup string,
 ) (types.DataResponseV1, error) {
-	res, ok, err := a.cache.Get(token)
+	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup)
+
+	res, ok, err := a.cache.Get(cacheKey)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to fetch authorization response from cache: %w", err), http.StatusInternalServerError}
@@ -102,13 +104,23 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusInternalServerError}
 	}
 
-	err = a.cache.Set(token, res)
+	err = a.cache.Set(cacheKey, res)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to store authorization response into cache: %w", err), http.StatusInternalServerError}
 	}
 
 	return res, nil
+}
+
+func generateCacheKey(
+	token, user string, groups []string,
+	verb, resource, resourceName, apiGroup string,
+) string {
+	return strings.Join([]string{
+		token, user, strings.Join(groups, ","),
+		verb, resource, resourceName, apiGroup,
+	}, ":")
 }
 
 func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
