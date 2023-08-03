@@ -1,9 +1,11 @@
 package authorizer
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -117,10 +119,27 @@ func generateCacheKey(
 	token, user string, groups []string,
 	verb, resource, resourceName, apiGroup string,
 ) string {
+	userHash := hashUserinfo(token, user, groups)
+
 	return strings.Join([]string{
-		token, user, strings.Join(groups, ","),
-		verb, resource, resourceName, apiGroup,
-	}, ":")
+		verb,
+		apiGroup, resourceName, resource,
+		userHash,
+	}, ",")
+}
+
+func hashUserinfo(token, user string, groups []string) string {
+	hash := sha256.New()
+	hash.Write([]byte(token))
+	hash.Write([]byte(user))
+
+	sort.Strings(groups)
+	for _, g := range groups {
+		hash.Write([]byte(g))
+	}
+
+	hashBytes := hash.Sum([]byte{})
+	return fmt.Sprintf("%s:%x", user, hashBytes)
 }
 
 func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
