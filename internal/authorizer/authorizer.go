@@ -1,9 +1,11 @@
 package authorizer
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -55,7 +57,9 @@ func (a *Authorizer) Authorize(
 	user string, groups []string,
 	verb, resource, resourceName, apiGroup string,
 ) (types.DataResponseV1, error) {
-	res, ok, err := a.cache.Get(token)
+	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup)
+
+	res, ok, err := a.cache.Get(cacheKey)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to fetch authorization response from cache: %w", err), http.StatusInternalServerError}
@@ -102,13 +106,40 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusInternalServerError}
 	}
 
-	err = a.cache.Set(token, res)
+	err = a.cache.Set(cacheKey, res)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to store authorization response into cache: %w", err), http.StatusInternalServerError}
 	}
 
 	return res, nil
+}
+
+func generateCacheKey(
+	token, user string, groups []string,
+	verb, resource, resourceName, apiGroup string,
+) string {
+	userHash := hashUserinfo(token, user, groups)
+
+	return strings.Join([]string{
+		verb,
+		apiGroup, resourceName, resource,
+		userHash,
+	}, ",")
+}
+
+func hashUserinfo(token, user string, groups []string) string {
+	hash := sha256.New()
+	hash.Write([]byte(token))
+	hash.Write([]byte(user))
+
+	sort.Strings(groups)
+	for _, g := range groups {
+		hash.Write([]byte(g))
+	}
+
+	hashBytes := hash.Sum([]byte{})
+	return fmt.Sprintf("%s:%x", user, hashBytes)
 }
 
 func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
