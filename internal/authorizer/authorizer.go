@@ -57,6 +57,12 @@ func (a *Authorizer) Authorize(
 	verb, resource, resourceName, apiGroup string,
 	namespaces []string, path string,
 ) (types.DataResponseV1, error) {
+	switch verb {
+	case CreateVerb, GetVerb:
+	default:
+		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusBadRequest}
+	}
+
 	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, path)
 
 	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey)
@@ -77,6 +83,7 @@ func (a *Authorizer) Authorize(
 	}
 
 	if err := a.cache.Set(cacheKey, res); err != nil {
+		// Only emit a warning when saving to cache fails, request still proceeds normally
 		level.Warn(a.logger).Log("msg", fmt.Sprintf("failed to save cached response: %s", err), "cachekey", cacheKey)
 	}
 
@@ -170,11 +177,6 @@ func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataRespon
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 	}
 
-	if len(nsList) == 0 {
-		// list of namespaces is empty -> deny
-		return minimalDataResponseV1(false), nil
-	}
-
 	if len(namespaces) == 0 {
 		// request was cluster-scoped, return matcher with all accessible namespaces
 		return newDataResponseV1(nsList, a.matcher)
@@ -229,8 +231,14 @@ func newDataResponseV1(ns []string, matcher *config.Matcher) (types.DataResponse
 		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)
 	}
 
+	allowed := "true"
+	if len(ns) == 0 {
+		// Disallow request if no namespaces are allowed
+		allowed = "false"
+	}
+
 	var res interface{} = map[string]string{
-		"allowed": "true",
+		"allowed": allowed,
 		"data":    string(data),
 	}
 

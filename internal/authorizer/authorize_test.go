@@ -122,17 +122,6 @@ func TestAuthorize(t *testing.T) {
 			wantErr:     errors.New("failed to fetch authorization response from cache: get-cache error"),
 		},
 		{
-			desc:        "fail - cache set error",
-			matcher:     config.EmptyMatcher(),
-			cacheSetErr: errors.New("set-cache error"),
-			sarAllowed:  true,
-			nsList: []string{
-				"test-namespace-1",
-			},
-			verb:    GetVerb,
-			wantErr: errors.New("failed to store authorization response into cache: set-cache error"),
-		},
-		{
 			desc:       "fail - wrong verb",
 			matcher:    config.EmptyMatcher(),
 			sarAllowed: true,
@@ -149,7 +138,7 @@ func TestAuthorize(t *testing.T) {
 				"test-namespace-1",
 			},
 			verb:    GetVerb,
-			wantErr: errors.New("failed to authorize subject for auth backend role: test SAR error"),
+			wantErr: errors.New("cluster-wide SAR failed: test SAR error"),
 		},
 		{
 			desc:       "fail - list namespace error",
