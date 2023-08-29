@@ -20,6 +20,7 @@ func simpleSARFunc(allowed bool, err error) sarFunc {
 
 var (
 	allowSAR = simpleSARFunc(true, nil)
+	denySAR  = simpleSARFunc(false, nil)
 )
 
 type fakeClient struct {
@@ -82,6 +83,8 @@ func TestAuthorize(t *testing.T) {
 		nsList        []string
 		nsErr         error
 		verb          string
+		namespaces    []string
+		path          string
 		wantAuthorize types.DataResponseV1
 		wantErr       error
 	}{
@@ -165,6 +168,75 @@ func TestAuthorize(t *testing.T) {
 			verb:          GetVerb,
 			wantAuthorize: namespaceResponse,
 		},
+		{
+			desc:    "allow - get, with matcher, namespaced",
+			matcher: namespaceMatcher,
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+				if namespace == "test-namespace-1" {
+					return true, nil
+				}
+
+				return false, nil
+			},
+			nsList:        []string{"test-namespace-0", "test-namespace-1"},
+			verb:          GetVerb,
+			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
+			wantAuthorize: namespaceResponse,
+		},
+		{
+			desc:    "allow - get, with matcher, namespaced, cluster-wide SAR",
+			matcher: namespaceMatcher,
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+				if namespace == "" || namespace == "test-namespace-1" {
+					return true, nil
+				}
+
+				return false, nil
+			},
+			nsList:        []string{"test-namespace-1"},
+			verb:          GetVerb,
+			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
+			wantAuthorize: namespaceResponse,
+		},
+		{
+			desc:    "allow - get, with matcher, no cluster-wide access, meta request",
+			matcher: namespaceMatcher,
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+				if namespace == "test-namespace-1" {
+					return true, nil
+				}
+
+				return false, nil
+			},
+			nsList:        []string{"test-namespace-0", "test-namespace-1"},
+			verb:          GetVerb,
+			path:          pathLabels,
+			wantAuthorize: namespaceResponse,
+		},
+		{
+			desc:          "deny - get, with matcher, namespaced, no namespaces",
+			matcher:       namespaceMatcher,
+			sarFunc:       denySAR,
+			nsList:        []string{"test-namespace-0", "test-namespace-1"},
+			verb:          GetVerb,
+			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
+			wantAuthorize: minimalDataResponseV1(false),
+		},
+		{
+			desc:    "fail - get, with matcher, namespaced SAR failure",
+			matcher: namespaceMatcher,
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+				if namespace == "" {
+					return false, nil
+				}
+
+				return false, errors.New("namespaced SAR error")
+			},
+			nsList:     []string{"test-namespace-0", "test-namespace-1"},
+			verb:       GetVerb,
+			namespaces: []string{"test-namespace-1"},
+			wantErr:    errors.New("namespaced SAR failed: namespaced SAR error"),
+		},
 	}
 
 	for _, tc := range tt {
@@ -191,7 +263,7 @@ func TestAuthorize(t *testing.T) {
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
 				"application", "logs", "loki.grafana.com",
-				[]string{}, "",
+				tc.namespaces, tc.path,
 			)
 
 			if tc.wantErr == nil {
