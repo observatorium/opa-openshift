@@ -17,7 +17,8 @@ type inmemory struct {
 
 func NewInMemoryCache(expire int32) Cacher {
 	tc := ttlcache.NewCache()
-	_ = tc.SetTTL(time.Duration(expire * int32(time.Second)))
+	_ = tc.SetTTL(time.Duration(int64(expire) * int64(time.Second)))
+	tc.SkipTTLExtensionOnHit(true)
 
 	return &inmemory{tc: tc}
 }
