@@ -2,10 +2,9 @@ package cache
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/open-policy-agent/opa/server/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -13,13 +12,15 @@ import (
 var errNotSupportedType = errors.New("value type not supported")
 
 type inmemory struct {
-	tc *ttlcache.Cache
+	tc *ttlcache.Cache[string, []byte]
 }
 
 func NewInMemoryCache(expire int32) CacherWithMetrics {
-	tc := ttlcache.NewCache()
-	_ = tc.SetTTL(time.Duration(int64(expire) * int64(time.Second)))
-	tc.SkipTTLExtensionOnHit(true)
+	expireDuration := time.Duration(int64(expire) * int64(time.Second))
+	tc := ttlcache.New[string, []byte](
+		ttlcache.WithTTL[string, []byte](expireDuration),
+		ttlcache.WithDisableTouchOnHit[string, []byte](),
+	)
 
 	return &inmemory{tc: tc}
 }
@@ -28,43 +29,32 @@ func (i *inmemory) Describe(descs chan<- *prometheus.Desc) {
 	descs <- descCacheInserts
 	descs <- descCacheRequests
 	descs <- descCacheEvictions
-	descs <- descCacheItems
 }
 
 func (i *inmemory) Collect(metricsCh chan<- prometheus.Metric) {
-	count := i.tc.Count()
-	metrics := i.tc.GetMetrics()
+	metrics := i.tc.Metrics()
 
-	metricsCh <- prometheus.MustNewConstMetric(descCacheInserts, prometheus.CounterValue, float64(metrics.Inserted))
+	metricsCh <- prometheus.MustNewConstMetric(descCacheInserts, prometheus.CounterValue, float64(metrics.Insertions))
 	metricsCh <- prometheus.MustNewConstMetric(descCacheRequests,
-		prometheus.CounterValue, float64(metrics.Retrievals), metricsRequestResultHit)
+		prometheus.CounterValue, float64(metrics.Hits), metricsRequestResultHit)
 	metricsCh <- prometheus.MustNewConstMetric(descCacheRequests,
 		prometheus.CounterValue, float64(metrics.Misses), metricsRequestResultMiss)
-	metricsCh <- prometheus.MustNewConstMetric(descCacheEvictions, prometheus.CounterValue, float64(metrics.Evicted))
-	metricsCh <- prometheus.MustNewConstMetric(descCacheItems, prometheus.GaugeValue, float64(count))
+	metricsCh <- prometheus.MustNewConstMetric(descCacheEvictions, prometheus.CounterValue, float64(metrics.Evictions))
 }
 
 func (i *inmemory) Get(k string) (types.DataResponseV1, bool, error) {
-	val, err := i.tc.Get(k)
+	item := i.tc.Get(k)
+
+	if item == nil {
+		return types.DataResponseV1{}, false, nil
+	}
+
+	res, err := fromJSON(item.Value())
 	if err != nil {
-		if errors.Is(err, ttlcache.ErrNotFound) {
-			return types.DataResponseV1{}, false, nil
-		}
-
-		return types.DataResponseV1{}, false, fmt.Errorf("failed to fetch from in-memory cache: %w", err)
+		return types.DataResponseV1{}, false, err
 	}
 
-	switch v := val.(type) {
-	case []byte:
-		res, err := fromJSON(v)
-		if err != nil {
-			return types.DataResponseV1{}, false, err
-		}
-
-		return res, true, nil
-	default:
-		return types.DataResponseV1{}, false, fmt.Errorf("failed to read in-memory cache entry: %w", errNotSupportedType)
-	}
+	return res, true, nil
 }
 
 func (i *inmemory) Set(k string, res types.DataResponseV1) error {
@@ -73,9 +63,6 @@ func (i *inmemory) Set(k string, res types.DataResponseV1) error {
 		return err
 	}
 
-	if err := i.tc.Set(k, v); err != nil {
-		return fmt.Errorf("failed to store in in-memory cache: %w", err)
-	}
-
+	i.tc.Set(k, v, ttlcache.DefaultTTL)
 	return nil
 }

@@ -7,7 +7,6 @@ const (
 	metricNameCacheRequests  = metricsPrefix + "requests_total"
 	metricNameCacheInserts   = metricsPrefix + "inserts_total"
 	metricNameCacheEvictions = metricsPrefix + "evictions_total"
-	metricNameCacheItems     = metricsPrefix + "item_count"
 
 	metricsRequestResultHit  = "hit"
 	metricsRequestResultMiss = "miss"
@@ -27,9 +26,5 @@ var (
 	descCacheEvictions = prometheus.NewDesc(
 		metricNameCacheEvictions,
 		"Counts the number of cache evictions.",
-		nil, nil)
-	descCacheItems = prometheus.NewDesc(
-		metricNameCacheItems,
-		"Number of items currently in cache",
 		nil, nil)
 )
