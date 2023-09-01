@@ -64,6 +64,10 @@ func main() {
 		mc = cache.NewInMemoryCache(cfg.Memcached.Expire)
 	}
 
+	if cacheMetrics, ok := mc.(cache.CacherWithMetrics); ok {
+		reg.MustRegister(cacheMetrics)
+	}
+
 	wt := func(rt http.RoundTripper) http.RoundTripper {
 		return rti.NewRoundTripper("openshift", rt)
 	}
