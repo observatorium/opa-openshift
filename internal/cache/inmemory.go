@@ -1,15 +1,12 @@
 package cache
 
 import (
-	"errors"
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/open-policy-agent/opa/server/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-var errNotSupportedType = errors.New("value type not supported")
 
 type inmemory struct {
 	tc *ttlcache.Cache[string, []byte]
