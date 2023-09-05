@@ -60,6 +60,7 @@ func (i *inmemory) Set(k string, res types.DataResponseV1) error {
 		return err
 	}
 
+	// Save entry to cache using globally-defined TTL
 	i.tc.Set(k, v, ttlcache.DefaultTTL)
 	return nil
 }
