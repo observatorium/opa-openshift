@@ -162,7 +162,6 @@ func TestAuthorize(t *testing.T) {
 		},
 		{
 			desc:          "allow - cached",
-			matcher:       config.EmptyMatcher(),
 			cacheResponse: namespaceResponse,
 			cacheFound:    true,
 			verb:          GetVerb,
