@@ -5,12 +5,18 @@ import (
 	"fmt"
 
 	"github.com/open-policy-agent/opa/server/types"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Cacher is able to get and set key value pairs.
 type Cacher interface {
 	Get(string) (types.DataResponseV1, bool, error)
 	Set(string, types.DataResponseV1) error
+}
+
+type CacherWithMetrics interface {
+	Cacher
+	prometheus.Collector
 }
 
 func toJSON(res types.DataResponseV1) ([]byte, error) {
