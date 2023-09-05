@@ -111,7 +111,7 @@ func ParseFlags() (*Config, error) {
 
 	// Memcached flags
 	flag.StringSliceVar(&cfg.Memcached.Servers, "memcached", nil, "One or more Memcached server addresses.")
-	flag.Int32Var(&cfg.Memcached.Expire, "memcached.expire", 60*60, "Time after which keys stored in Memcached should expire, given in seconds.")              //nolint:lll,gomnd
+	flag.Int32Var(&cfg.Memcached.Expire, "memcached.expire", 60, "Time after which keys stored in Memcached should expire, given in seconds.")                 //nolint:lll,gomnd
 	flag.Int32Var(&cfg.Memcached.Interval, "memcached.interval", 10, "The interval at which to update the Memcached DNS, given in seconds; use 0 to disable.") //nolint:lll,gomnd
 
 	// Integration testing flags
