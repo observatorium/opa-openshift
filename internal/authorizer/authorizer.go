@@ -18,8 +18,6 @@ import (
 const (
 	GetVerb    = "get"
 	CreateVerb = "create"
-
-	pathLabels = "/loki/api/v1/labels"
 )
 
 type Authorizer struct {
@@ -196,11 +194,6 @@ func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataRespon
 
 	// cluster-scoped SAR was successful, so namespaced SARs will be successful as well -> return matcher
 	return newDataResponseV1(filtered, a.matcher)
-}
-
-func isMetaRequest(path string) bool {
-	return path == pathLabels ||
-		(strings.HasPrefix(path, "/loki/api/v1/label/") && strings.HasSuffix(path, "/values"))
 }
 
 func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
