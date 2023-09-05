@@ -3,7 +3,7 @@ package cache
 import "github.com/prometheus/client_golang/prometheus"
 
 const (
-	metricsPrefix            = "opa_cache_"
+	metricsPrefix            = "opa_openshift_cache_"
 	metricNameCacheRequests  = metricsPrefix + "requests_total"
 	metricNameCacheInserts   = metricsPrefix + "inserts_total"
 	metricNameCacheEvictions = metricsPrefix + "evictions_total"
