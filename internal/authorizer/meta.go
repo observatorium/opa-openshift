@@ -1,12 +1,32 @@
 package authorizer
 
-import "strings"
+import (
+	"strings"
+)
 
-const (
-	pathLabels = "/loki/api/v1/labels"
+var (
+	metaAbsolutePaths = map[string]bool{
+		"/loki/api/v1/label":  true,
+		"/loki/api/v1/labels": true,
+		"/loki/api/v1/series": true,
+		"/api/prom/label":     true,
+		"/api/prom/series":    true,
+	}
+
+	metaPathLabelValuesNewPrefix = "/loki/api/v1/label/"
+	metaPathLabelValuesOldPrefix = "/api/prom/label/"
+	metaPathLabelValuesSuffix    = "/values"
 )
 
 func isMetaRequest(path string) bool {
-	return path == pathLabels ||
-		(strings.HasPrefix(path, "/loki/api/v1/label/") && strings.HasSuffix(path, "/values"))
+	if absolutePath := metaAbsolutePaths[path]; absolutePath {
+		return true
+	}
+
+	if (strings.HasPrefix(path, metaPathLabelValuesOldPrefix) || strings.HasPrefix(path, metaPathLabelValuesNewPrefix)) &&
+		strings.HasSuffix(path, metaPathLabelValuesSuffix) {
+		return true
+	}
+
+	return false
 }

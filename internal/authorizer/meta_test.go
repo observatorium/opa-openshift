@@ -2,7 +2,7 @@ package authorizer
 
 import "testing"
 
-func Test_isMetaRequest(t *testing.T) {
+func TestIsMetaRequest(t *testing.T) {
 	tests := []struct {
 		path string
 		want bool

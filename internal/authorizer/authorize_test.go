@@ -209,7 +209,7 @@ func TestAuthorize(t *testing.T) {
 			},
 			nsList:        []string{"test-namespace-0", "test-namespace-1"},
 			verb:          GetVerb,
-			path:          pathLabels,
+			path:          "/loki/api/v1/labels",
 			wantAuthorize: namespaceResponse,
 		},
 		{
