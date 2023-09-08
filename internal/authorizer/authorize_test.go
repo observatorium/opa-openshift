@@ -84,7 +84,7 @@ func TestAuthorize(t *testing.T) {
 		nsErr         error
 		verb          string
 		namespaces    []string
-		path          string
+		metadataOnly  bool
 		wantAuthorize types.DataResponseV1
 		wantErr       error
 	}{
@@ -209,7 +209,7 @@ func TestAuthorize(t *testing.T) {
 			},
 			nsList:        []string{"test-namespace-0", "test-namespace-1"},
 			verb:          GetVerb,
-			path:          "/loki/api/v1/labels",
+			metadataOnly:  true,
 			wantAuthorize: namespaceResponse,
 		},
 		{
@@ -262,7 +262,7 @@ func TestAuthorize(t *testing.T) {
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
 				"application", "logs", "loki.grafana.com",
-				tc.namespaces, tc.path,
+				tc.namespaces, tc.metadataOnly,
 			)
 
 			if tc.wantErr == nil {

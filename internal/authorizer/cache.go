@@ -10,12 +10,12 @@ import (
 func generateCacheKey(
 	token, user string, groups []string,
 	verb, resource, resourceName, apiGroup string, namespaces []string,
-	path string,
+	metadataOnly bool,
 ) string {
 	userHash := hashUserinfo(token, user, groups)
 
 	return strings.Join([]string{
-		verb, path,
+		verb, fmt.Sprintf("%v", metadataOnly),
 		apiGroup, resourceName, resource, strings.Join(namespaces, ":"),
 		userHash,
 	}, ",")

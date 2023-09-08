@@ -53,7 +53,7 @@ func (a *Authorizer) Authorize(
 	token,
 	user string, groups []string,
 	verb, resource, resourceName, apiGroup string,
-	namespaces []string, path string,
+	namespaces []string, metadataOnly bool,
 ) (types.DataResponseV1, error) {
 	switch verb {
 	case CreateVerb, GetVerb:
@@ -61,7 +61,7 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusBadRequest}
 	}
 
-	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, path)
+	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly)
 
 	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey)
 	res, ok, err := a.cache.Get(cacheKey)
@@ -75,7 +75,7 @@ func (a *Authorizer) Authorize(
 		return res, nil
 	}
 
-	res, err = a.authorizeInner(user, groups, verb, resource, resourceName, apiGroup, namespaces, path)
+	res, err = a.authorizeInner(user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly)
 	if err != nil {
 		return types.DataResponseV1{}, err
 	}
@@ -88,7 +88,7 @@ func (a *Authorizer) Authorize(
 	return res, nil
 }
 
-func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, path string) (types.DataResponseV1, error) {
+func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, metadataOnly bool) (types.DataResponseV1, error) {
 	// check if user has cluster-wide access
 	clusterAllow, err := a.client.SubjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, "")
 	if err != nil {
@@ -111,7 +111,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 		return a.authorizeClusterWide(namespaces)
 	}
 
-	if isMetaRequest(path) && len(namespaces) == 0 {
+	if metadataOnly && len(namespaces) == 0 {
 		// Only a metadata request and no namespaces provided -> populate with API list
 		nsList, err := a.client.ListNamespaces()
 		if err != nil {

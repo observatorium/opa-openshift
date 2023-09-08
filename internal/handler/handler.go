@@ -29,13 +29,13 @@ const (
 )
 
 type Input struct {
-	Groups     []string   `json:"groups"`
-	Permission Permission `json:"permission"`
-	Resource   string     `json:"resource"`
-	Subject    string     `json:"subject"`
-	Tenant     string     `json:"tenant"`
-	Namespaces []string   `json:"namespaces"`
-	Path       string     `json:"path"`
+	Groups       []string   `json:"groups"`
+	Permission   Permission `json:"permission"`
+	Resource     string     `json:"resource"`
+	Subject      string     `json:"subject"`
+	Tenant       string     `json:"tenant"`
+	Namespaces   []string   `json:"namespaces"`
+	MetadataOnly bool       `json:"metadataOnly"`
 }
 
 type dataRequestV1 struct {
@@ -117,7 +117,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, req.Input.Namespaces, req.Input.Path)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, req.Input.Namespaces, req.Input.MetadataOnly)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
