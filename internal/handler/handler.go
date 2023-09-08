@@ -29,13 +29,14 @@ const (
 )
 
 type Input struct {
-	Groups       []string   `json:"groups"`
-	Permission   Permission `json:"permission"`
-	Resource     string     `json:"resource"`
-	Subject      string     `json:"subject"`
-	Tenant       string     `json:"tenant"`
-	Namespaces   []string   `json:"namespaces"`
-	MetadataOnly bool       `json:"metadataOnly"`
+	Groups             []string   `json:"groups"`
+	Permission         Permission `json:"permission"`
+	Resource           string     `json:"resource"`
+	Subject            string     `json:"subject"`
+	Tenant             string     `json:"tenant"`
+	Namespaces         []string   `json:"namespaces,omitempty"`
+	WildcardNamespaces bool       `json:"wildcardNamespaces,omitempty"`
+	MetadataOnly       bool       `json:"metadataOnly,omitempty"`
 }
 
 type dataRequestV1 struct {
@@ -114,6 +115,11 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 		}
 
 		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
+		if req.Input.WildcardNamespaces && !matcherForRequest.IsEmpty() {
+			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
+			http.Error(w, "wildcard in query namespaces not allowed", http.StatusBadRequest)
+			return
+		}
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
