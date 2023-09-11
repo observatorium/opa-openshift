@@ -11,6 +11,7 @@ import (
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/transport"
 )
 
@@ -42,9 +43,9 @@ type InputExtraAttributes struct {
 }
 
 type InputLogsExtraAttributes struct {
-	Namespaces         []string `json:"namespaces,omitempty"`
-	WildcardNamespaces bool     `json:"wildcardNamespaces,omitempty"`
-	MetadataOnly       bool     `json:"metadataOnly,omitempty"`
+	Selectors         map[string][]string `json:"selectors,omitempty"`
+	WildcardSelectors bool                `json:"wildcardSelectors,omitempty"`
+	MetadataOnly      bool                `json:"metadataOnly,omitempty"`
 }
 
 type dataRequestV1 struct {
@@ -124,15 +125,24 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
 		logsExtras := req.Input.Extras.Logs
-		if logsExtras.WildcardNamespaces && !matcherForRequest.IsEmpty() {
+		if logsExtras.WildcardSelectors && !matcherForRequest.IsEmpty() {
 			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
 			http.Error(w, "wildcard in query namespaces not allowed", http.StatusBadRequest)
 			return
 		}
 
+		// Collect all "namespaces" mentioned in the selectors.
+		// We currently do not care which label the namespace value came from.
+		namespaces := sets.New[string]()
+		for _, values := range logsExtras.Selectors {
+			for _, v := range values {
+				namespaces.Insert(v)
+			}
+		}
+
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, logsExtras.Namespaces, logsExtras.MetadataOnly)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), logsExtras.MetadataOnly)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
