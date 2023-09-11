@@ -29,14 +29,22 @@ const (
 )
 
 type Input struct {
-	Groups             []string   `json:"groups"`
-	Permission         Permission `json:"permission"`
-	Resource           string     `json:"resource"`
-	Subject            string     `json:"subject"`
-	Tenant             string     `json:"tenant"`
-	Namespaces         []string   `json:"namespaces,omitempty"`
-	WildcardNamespaces bool       `json:"wildcardNamespaces,omitempty"`
-	MetadataOnly       bool       `json:"metadataOnly,omitempty"`
+	Groups     []string             `json:"groups"`
+	Permission Permission           `json:"permission"`
+	Resource   string               `json:"resource"`
+	Subject    string               `json:"subject"`
+	Tenant     string               `json:"tenant"`
+	Extras     InputExtraAttributes `json:"extras,omitempty"`
+}
+
+type InputExtraAttributes struct {
+	Logs InputLogsExtraAttributes `json:"logs,omitempty"`
+}
+
+type InputLogsExtraAttributes struct {
+	Namespaces         []string `json:"namespaces,omitempty"`
+	WildcardNamespaces bool     `json:"wildcardNamespaces,omitempty"`
+	MetadataOnly       bool     `json:"metadataOnly,omitempty"`
 }
 
 type dataRequestV1 struct {
@@ -115,7 +123,8 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 		}
 
 		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
-		if req.Input.WildcardNamespaces && !matcherForRequest.IsEmpty() {
+		logsExtras := req.Input.Extras.Logs
+		if logsExtras.WildcardNamespaces && !matcherForRequest.IsEmpty() {
 			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
 			http.Error(w, "wildcard in query namespaces not allowed", http.StatusBadRequest)
 			return
@@ -123,7 +132,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, req.Input.Namespaces, req.Input.MetadataOnly)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, logsExtras.Namespaces, logsExtras.MetadataOnly)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
