@@ -11,6 +11,7 @@ import (
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/transport"
 )
 
@@ -29,11 +30,18 @@ const (
 )
 
 type Input struct {
-	Groups     []string   `json:"groups"`
-	Permission Permission `json:"permission"`
-	Resource   string     `json:"resource"`
-	Subject    string     `json:"subject"`
-	Tenant     string     `json:"tenant"`
+	Groups     []string             `json:"groups"`
+	Permission Permission           `json:"permission"`
+	Resource   string               `json:"resource"`
+	Subject    string               `json:"subject"`
+	Tenant     string               `json:"tenant"`
+	Extras     InputExtraAttributes `json:"extras,omitempty"`
+}
+
+type InputExtraAttributes struct {
+	Selectors         map[string][]string `json:"selectors,omitempty"`
+	WildcardSelectors bool                `json:"wildcardSelectors,omitempty"`
+	MetadataOnly      bool                `json:"metadataOnly,omitempty"`
 }
 
 type dataRequestV1 struct {
@@ -112,10 +120,25 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 		}
 
 		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
+		extras := req.Input.Extras
+		if extras.WildcardSelectors && !matcherForRequest.IsEmpty() {
+			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
+			http.Error(w, "wildcard in query namespaces not allowed", http.StatusBadRequest)
+			return
+		}
+
+		// Collect all "namespaces" mentioned in the selectors.
+		// We currently do not care which label the namespace value came from.
+		namespaces := sets.New[string]()
+		for _, values := range extras.Selectors {
+			for _, v := range values {
+				namespaces.Insert(v)
+			}
+		}
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint

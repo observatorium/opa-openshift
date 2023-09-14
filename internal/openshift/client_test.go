@@ -88,6 +88,6 @@ func TestSubjectAccessReview_HandleResourceAttributesOnly(t *testing.T) {
 		return sar, nil
 	})
 
-	_, err := c.SubjectAccessReview(input.user, input.groups, input.verb, input.resource, input.resourceName, input.apiGroup)
+	_, err := c.SubjectAccessReview(input.user, input.groups, input.verb, input.resource, input.resourceName, input.apiGroup, "")
 	require.NoError(t, err)
 }
