@@ -4,20 +4,20 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"k8s.io/component-base/cli/flag"
 )
 
 // NewServerConfig provides new server TLS configuration.
 func NewServerConfig(logger log.Logger, certFile, keyFile, minVersion string, cipherSuites []string) (*tls.Config, error) {
 	if certFile == "" && keyFile == "" {
-		level.Info(logger).Log("msg", "TLS disabled; key and cert must be set to enable")
+		level.Info(logger).Log("msg", "TLS disabled; key and cert must be set to enable") //nolint:errcheck
 
 		return nil, nil
 	}
 
-	level.Info(logger).Log("msg", "enabling server side TLS")
+	level.Info(logger).Log("msg", "enabling server side TLS") //nolint:errcheck
 
 	tlsCert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {

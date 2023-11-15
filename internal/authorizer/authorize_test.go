@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/open-policy-agent/opa/server/types"
 	"github.com/stretchr/testify/require"

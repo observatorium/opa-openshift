@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log/level"
 	flag "github.com/spf13/pflag"
 )
 

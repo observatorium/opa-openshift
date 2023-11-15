@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/observatorium/opa-openshift/internal/authorizer"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
@@ -109,7 +109,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 			token = debugToken
 
-			level.Warn(l).Log("msg", "using debug.token in production environments is not recommended.")
+			level.Warn(l).Log("msg", "using debug.token in production environments is not recommended.") //nolint:errcheck
 		}
 
 		oc, err := openshift.NewClient(wt, kubeconfigPath, token)

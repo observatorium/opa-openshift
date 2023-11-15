@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/metalmatze/signal/healthcheck"
 	"github.com/metalmatze/signal/internalserver"
 	"github.com/metalmatze/signal/server/signalhttp"
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	defer level.Info(logger).Log("msg", "exiting")
+	defer level.Info(logger).Log("msg", "exiting") //nolint:errcheck
 
 	reg := prometheus.NewRegistry()
 	hi := signalhttp.NewHandlerInstrumenter(reg, []string{"handler"})
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	p := path.Join(dataEndpoint, strings.ReplaceAll(cfg.Opa.Pkg, ".", "/"), cfg.Opa.Rule)
-	level.Info(logger).Log("msg", "configuring the OPA endpoint", "path", p)
+	level.Info(logger).Log("msg", "configuring the OPA endpoint", "path", p) //nolint:errcheck
 
 	l := log.With(logger, "component", "authorizer")
 	m := http.NewServeMux()
@@ -112,7 +112,7 @@ func main() {
 		)
 	}
 
-	level.Info(logger).Log("msg", "starting opa-openshift")
+	level.Info(logger).Log("msg", "starting opa-openshift") //nolint:errcheck
 
 	var g run.Group
 	{
@@ -121,7 +121,7 @@ func main() {
 		g.Add(func() error {
 			signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 			<-sig
-			level.Info(logger).Log("msg", "caught interrupt")
+			level.Info(logger).Log("msg", "caught interrupt") //nolint:errcheck
 
 			return nil
 		}, func(_ error) {
@@ -150,7 +150,7 @@ func main() {
 		}
 
 		g.Add(func() error {
-			level.Info(logger).Log("msg", "starting the HTTP server", "address", cfg.Server.Listen)
+			level.Info(logger).Log("msg", "starting the HTTP server", "address", cfg.Server.Listen) //nolint:errcheck
 
 			if tlsConfig != nil {
 				// serverCertFile and serverKeyFile passed in TLSConfig at initialization.
@@ -159,7 +159,7 @@ func main() {
 
 			return s.ListenAndServe() //nolint:wrapcheck
 		}, func(_ error) {
-			level.Info(logger).Log("msg", "shutting down the HTTP server")
+			level.Info(logger).Log("msg", "shutting down the HTTP server") //nolint:errcheck
 			_ = s.Shutdown(context.Background())
 		})
 	}
@@ -193,7 +193,7 @@ func main() {
 		}
 
 		g.Add(func() error {
-			level.Info(logger).Log("msg", "starting internal HTTP server", "address", s.Addr)
+			level.Info(logger).Log("msg", "starting internal HTTP server", "address", s.Addr) //nolint:errcheck
 
 			if tlsConfig != nil {
 				// serverCertFile and serverKeyFile passed in TLSConfig at initialization.
