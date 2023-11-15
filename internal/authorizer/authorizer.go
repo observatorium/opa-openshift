@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/observatorium/opa-openshift/internal/cache"
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
@@ -63,7 +63,7 @@ func (a *Authorizer) Authorize(
 
 	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly)
 
-	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey)
+	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey) //nolint:errcheck
 	res, ok, err := a.cache.Get(cacheKey)
 	if err != nil {
 		return types.DataResponseV1{},
@@ -71,7 +71,7 @@ func (a *Authorizer) Authorize(
 	}
 
 	if ok {
-		level.Debug(a.logger).Log("msg", "cache hit", "cachekey", cacheKey)
+		level.Debug(a.logger).Log("msg", "cache hit", "cachekey", cacheKey) //nolint:errcheck
 		return res, nil
 	}
 
@@ -82,7 +82,7 @@ func (a *Authorizer) Authorize(
 
 	if err := a.cache.Set(cacheKey, res); err != nil {
 		// Only emit a warning when saving to cache fails, request still proceeds normally
-		level.Warn(a.logger).Log("msg", fmt.Sprintf("failed to save cached response: %s", err), "cachekey", cacheKey)
+		level.Warn(a.logger).Log("msg", fmt.Sprintf("failed to save cached response: %s", err), "cachekey", cacheKey) //nolint:errcheck
 	}
 
 	return res, nil
@@ -94,6 +94,8 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 	if err != nil {
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("cluster-wide SAR failed: %w", err), http.StatusUnauthorized}
 	}
+
+	//nolint:errcheck
 	level.Debug(a.logger).Log(
 		"msg", "cluster-scoped SubjectAccessReview",
 		"user", user, "groups", fmt.Sprintf("%s", groups),
@@ -117,6 +119,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 		if err != nil {
 			return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 		}
+		//nolint:errcheck
 		level.Debug(a.logger).Log("msg", "list namespaces for meta request",
 			"namespaces", fmt.Sprintf("%s", nsList),
 		)
@@ -136,6 +139,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 			return types.DataResponseV1{},
 				&StatusCodeError{fmt.Errorf("namespaced SAR failed: %w", err), http.StatusUnauthorized}
 		}
+		//nolint:errcheck
 		level.Debug(a.logger).Log(
 			"msg", "namespace-scoped SubjectAccessReview",
 			"user", user, "groups", fmt.Sprintf("%s", groups),
