@@ -31,14 +31,15 @@ type Config struct {
 }
 
 type OPAConfig struct {
-	Pkg                 string
-	Rule                string
-	Matcher             string
-	MatcherOp           string
-	MatcherSkipTenants  string
-	MatcherAdminGroups  string
-	SSAR                bool
-	ViaQToOTELMigration bool
+	Pkg                         string
+	Rule                        string
+	Matcher                     string
+	MatcherOp                   string
+	MatcherSkipTenants          string
+	MatcherAdminGroups          string
+	SSAR                        bool
+	ViaQToOTELMigration         bool
+	AllowSkipNamespaceInference bool
 }
 
 type ServerConfig struct {
@@ -112,6 +113,7 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.Opa.MatcherAdminGroups, "opa.admin-groups", "", "Groups which should be treated as admins and cause the matcher to be omitted.")
 	flag.BoolVar(&cfg.Opa.SSAR, "opa.ssar", false, "Use SelftSubjectAccessReview instead of SubjectAccessReview.")
 	flag.BoolVar(&cfg.Opa.ViaQToOTELMigration, "opa.viaq-to-otel-migration", false, "Enable the ViaQ to OTel migration.")
+	flag.BoolVar(&cfg.Opa.AllowSkipNamespaceInference, "opa.skip-namespace-inference", false, "Set true when namespaces cannot be inferred from query. This results in doing SARs for each user accessible namespace.")
 
 	// Memcached flags
 	flag.StringSliceVar(&cfg.Memcached.Servers, "memcached", nil, "One or more Memcached server addresses.")

@@ -13,13 +13,13 @@ import (
 func generateCacheKey(
 	token, user string, groups []string,
 	verb, resource, resourceName, apiGroup string, namespaces []string,
-	metadataOnly bool, matcher *config.Matcher,
+	allowSkipNamespaceInference bool, matcher *config.Matcher,
 ) string {
 	userHash := hashUserinfo(token, user, groups)
 	matcherHash := hashMatcher(matcher)
 
 	return strings.Join([]string{
-		verb, fmt.Sprintf("%v", metadataOnly),
+		verb, fmt.Sprintf("%v", allowSkipNamespaceInference),
 		apiGroup, resourceName, resource, strings.Join(namespaces, ":"),
 		userHash, matcherHash,
 	}, ",")
