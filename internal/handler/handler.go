@@ -137,8 +137,9 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 		}
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
+		allowSkipNamespaceInference := cfg.Opa.AllowSkipNamespaceInference || extras.MetadataOnly
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), allowSkipNamespaceInference)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
