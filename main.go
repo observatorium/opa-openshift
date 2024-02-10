@@ -47,6 +47,8 @@ func init() {
 
 //nolint:funlen,cyclop
 func main() {
+	stdlog.Println(version.Info())
+
 	cfg, err := config.ParseFlags()
 	if err != nil {
 		stdlog.Fatal(err)

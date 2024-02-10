@@ -3,16 +3,12 @@ package config
 import (
 	"fmt"
 	stdlog "log"
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/go-kit/log/level"
-	"github.com/prometheus/common/version"
 	flag "github.com/spf13/pflag"
 )
-
-const appName = "opa-openshift"
 
 var (
 	validRule    = regexp.MustCompile(`^[_A-Za-z][\w]*$`)
@@ -126,14 +122,7 @@ func ParseFlags() (*Config, error) {
 		stdlog.Fatal("failed to mark flag hidden")
 	}
 
-	printVersion := flag.Bool("version", false, "Print this builds version information")
-
 	flag.Parse()
-
-	if *printVersion {
-		fmt.Println(version.Print(appName))
-		os.Exit(0)
-	}
 
 	ll, err := parseLogLevel(logLevelRaw)
 	if err != nil {
@@ -146,11 +135,11 @@ func ParseFlags() (*Config, error) {
 		cfg.TLS.CipherSuites = strings.Split(rawTLSCipherSuites, ",")
 	}
 
-	if len(cfg.Opa.Pkg) > 0 && !validPackage.MatchString(cfg.Opa.Pkg) {
+	if len(cfg.Opa.Pkg) > 0 && !validPackage.Match([]byte(cfg.Opa.Pkg)) {
 		return nil, fmt.Errorf("invalid OPA package name: %s", cfg.Opa.Pkg) //nolint:goerr113
 	}
 
-	if len(cfg.Opa.Rule) > 0 && !validRule.MatchString(cfg.Opa.Rule) {
+	if len(cfg.Opa.Rule) > 0 && !validRule.Match([]byte(cfg.Opa.Rule)) {
 		return nil, fmt.Errorf("invalid OPA rule name: %s", cfg.Opa.Rule) //nolint:goerr113
 	}
 
