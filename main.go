@@ -24,6 +24,7 @@ import (
 	"github.com/observatorium/opa-openshift/internal/instrumentation"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/version"
 	"k8s.io/component-base/cli/flag"
 )
 
@@ -31,8 +32,23 @@ const (
 	dataEndpoint = "/v1/data"
 )
 
+// Version is set via build flag -ldflags -X main.Version.
+var (
+	Version  string
+	Branch   string
+	Revision string
+)
+
+func init() {
+	version.Version = Version
+	version.Branch = Branch
+	version.Revision = Revision
+}
+
 //nolint:funlen,cyclop
 func main() {
+	stdlog.Println(version.Info())
+
 	cfg, err := config.ParseFlags()
 	if err != nil {
 		stdlog.Fatal(err)

@@ -11,6 +11,8 @@ OS ?= $(shell uname -s | tr '[A-Z]' '[a-z]')
 ARCH ?= $(shell uname -m)
 
 VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_REVISION := $(shell git rev-parse --short HEAD)f
 BUILD_DATE := $(shell date -u +"%Y-%m-%d")
 BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
 VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
@@ -45,7 +47,7 @@ deps: go.mod go.sum
 	go mod verify
 
 opa-openshift: deps main.go $(wildcard *.go) $(wildcard */*.go)
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -a -ldflags '-s -w' -o $@ .
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -a -ldflags '-s -w -X main.Version=$(VERSION) -X main.Branch=$(GIT_BRANCH) -X main.Revision=$(GIT_REVISION)' -o $@ .
 
 .PHONY: go-generate
 go-generate:
