@@ -2,7 +2,7 @@ module github.com/observatorium/opa-openshift
 
 go 1.21
 
-toolchain go1.21.7
+toolchain go1.21.9
 
 require (
 	github.com/go-kit/log v0.2.1
