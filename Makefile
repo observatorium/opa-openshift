@@ -58,7 +58,7 @@ build: opa-openshift
 
 .PHONY: format
 format: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run --fix --enable-all -c .golangci.yml
+	$(GOLANGCI_LINT) run --fix -c .golangci.yml
 
 .PHONY: go-fmt
 go-fmt: $(GOFUMPT)
