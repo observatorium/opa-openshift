@@ -127,6 +127,19 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
+		// If ViaQ to OTEL migration then if extras has both
+		// kubernetes_namespace_name & k8s_namespace_name set then fail
+		if cfg.Opa.ViaQToOTELMigration {
+			if vals, ok := extras.Selectors["kubernetes_namespace_name"]; ok && len(vals) > 0 {
+				if vals, ok := extras.Selectors["k8s_namespace_name"]; ok && len(vals) > 0 {
+					http.Error(w, "queries with both 'kubernetes_namespace_name' and 'k8s_namespace_name' selectors are not allowed", http.StatusBadRequest)
+					return
+				}
+			}
+
+			matcherForRequest.ViaQToOTELMigration(extras.Selectors)
+		}
+
 		// Collect all "namespaces" mentioned in the selectors.
 		// We currently do not care which label the namespace value came from.
 		namespaces := sets.New[string]()

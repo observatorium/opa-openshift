@@ -29,10 +29,8 @@ func (c *OPAConfig) ToMatcher() Matcher {
 		adminGroups: adminGroups,
 	}
 
-	if matcherOp != "" {
-		matcher.Keys = strings.Split(matcherKeys, matchersSeparator)
-	} else if matcherKeys != "" {
-		matcher.Keys = []string{matcherKeys}
+	if keys := strings.Split(matcherKeys, matchersSeparator); len(keys) > 0 && keys[0] != "" {
+		matcher.Keys = keys
 	}
 
 	return matcher
@@ -85,4 +83,24 @@ func (m *Matcher) ForRequest(tenant string, groups []string) *Matcher {
 	}
 
 	return m
+}
+
+func (m *Matcher) ViaQToOTELMigration(selectors map[string][]string) {
+	if vals, ok := selectors["k8s_namespace_name"]; ok && len(vals) > 0 {
+		m.Keys = deleteKey(m.Keys, "kubernetes_namespace_name")
+		return
+	}
+	// Here we always delete the key "k8s_namespace_name" from the keys
+	// to cover both the cases where kubernetes_namespace_name is present or no
+	// selectors were present
+	m.Keys = deleteKey(m.Keys, "k8s_namespace_name")
+}
+
+func deleteKey(keys []string, keyToDelete string) []string {
+	for i, key := range keys {
+		if key == keyToDelete {
+			return append(keys[:i], keys[i+1:]...)
+		}
+	}
+	return keys
 }
