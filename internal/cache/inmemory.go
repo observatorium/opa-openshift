@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
-	"github.com/open-policy-agent/opa/server/types"
+	"github.com/open-policy-agent/opa/v1/server/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -14,7 +14,7 @@ type inmemory struct {
 
 func NewInMemoryCache(expire int32) CacherWithMetrics {
 	expireDuration := time.Duration(int64(expire) * int64(time.Second))
-	tc := ttlcache.New[string, []byte](
+	tc := ttlcache.New(
 		ttlcache.WithTTL[string, []byte](expireDuration),
 		ttlcache.WithDisableTouchOnHit[string, []byte](),
 	)

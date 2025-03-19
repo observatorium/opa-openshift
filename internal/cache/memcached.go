@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-policy-agent/opa/server/types"
+	"github.com/open-policy-agent/opa/v1/server/types"
 	tcache "github.com/openshift/telemeter/pkg/cache"
 	"github.com/openshift/telemeter/pkg/cache/memcached"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/open-policy-agent/opa/server/types"
+	"github.com/open-policy-agent/opa/v1/server/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
