@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type sarFunc func(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
+type sarFunc func(verb, resource, resourceName, apiGroup, namespace string) (bool, error)
 
 func simpleSARFunc(allowed bool, err error) sarFunc {
-	return func(_ string, _ []string, _, _, _, _, _ string) (bool, error) {
+	return func(_, _, _, _, _ string) (bool, error) {
 		return allowed, err
 	}
 }
@@ -29,8 +29,8 @@ type fakeClient struct {
 	nsErr   error
 }
 
-func (f *fakeClient) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
-	return f.sarFunc(user, groups, verb, resource, resourceName, apiGroup, namespace)
+func (f *fakeClient) SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+	return f.sarFunc(verb, resource, resourceName, apiGroup, namespace)
 }
 
 func (f *fakeClient) ListNamespaces() ([]string, error) {
@@ -170,7 +170,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, namespaced",
 			matcher: namespaceMatcher,
-			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
 				if namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -185,7 +185,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, namespaced, cluster-wide SAR",
 			matcher: namespaceMatcher,
-			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
 				if namespace == "" || namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -200,7 +200,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, no cluster-wide access, meta request",
 			matcher: namespaceMatcher,
-			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
 				if namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -224,7 +224,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "fail - get, with matcher, namespaced SAR failure",
 			matcher: namespaceMatcher,
-			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
 				if namespace == "" {
 					return false, nil
 				}

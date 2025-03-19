@@ -90,7 +90,7 @@ func (a *Authorizer) Authorize(
 
 func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, metadataOnly bool) (types.DataResponseV1, error) {
 	// check if user has cluster-wide access
-	clusterAllow, err := a.client.SubjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, "")
+	clusterAllow, err := a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, "")
 	if err != nil {
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("cluster-wide SAR failed: %w", err), http.StatusUnauthorized}
 	}
@@ -134,7 +134,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	allowed := []string{}
 	for _, ns := range namespaces {
-		nsAllowed, err := a.client.SubjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, ns)
+		nsAllowed, err := a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, ns)
 		if err != nil {
 			return types.DataResponseV1{},
 				&StatusCodeError{fmt.Errorf("namespaced SAR failed: %w", err), http.StatusUnauthorized}
