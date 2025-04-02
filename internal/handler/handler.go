@@ -136,7 +136,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			}
 		}
 
-		a := authorizer.New(oc, l, c, matcherForRequest)
+		a := authorizer.New(oc, l, c, matcherForRequest, cfg.Opa.SSAR)
 
 		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly)
 		if err != nil {
