@@ -25,6 +25,7 @@ type Authorizer struct {
 	logger  log.Logger
 	cache   cache.Cacher
 	matcher *config.Matcher
+	ssar    bool
 }
 
 type AuthzResponseData struct {
@@ -45,8 +46,8 @@ func (s *StatusCodeError) StatusCode() int {
 	return s.SC
 }
 
-func New(c openshift.Client, l log.Logger, cc cache.Cacher, matcher *config.Matcher) *Authorizer {
-	return &Authorizer{client: c, logger: l, cache: cc, matcher: matcher}
+func New(c openshift.Client, l log.Logger, cc cache.Cacher, matcher *config.Matcher, ssar bool) *Authorizer {
+	return &Authorizer{client: c, logger: l, cache: cc, matcher: matcher, ssar: ssar}
 }
 
 func (a *Authorizer) Authorize(
@@ -90,7 +91,15 @@ func (a *Authorizer) Authorize(
 
 func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, metadataOnly bool) (types.DataResponseV1, error) {
 	// check if user has cluster-wide access
-	clusterAllow, err := a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, "")
+	var (
+		clusterAllow bool
+		err          error
+	)
+	if a.ssar {
+		clusterAllow, err = a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, "")
+	} else {
+		clusterAllow, err = a.client.SubjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, "")
+	}
 	if err != nil {
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("cluster-wide SAR failed: %w", err), http.StatusUnauthorized}
 	}
@@ -134,7 +143,15 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	allowed := []string{}
 	for _, ns := range namespaces {
-		nsAllowed, err := a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, ns)
+		var (
+			nsAllowed bool
+			err       error
+		)
+		if a.ssar {
+			nsAllowed, err = a.client.SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, ns)
+		} else {
+			nsAllowed, err = a.client.SubjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, ns)
+		}
 		if err != nil {
 			return types.DataResponseV1{},
 				&StatusCodeError{fmt.Errorf("namespaced SAR failed: %w", err), http.StatusUnauthorized}

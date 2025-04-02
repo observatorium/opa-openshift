@@ -10,27 +10,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type sarFunc func(verb, resource, resourceName, apiGroup, namespace string) (bool, error)
+type (
+	sarFunc  func(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
+	ssarFunc func(verb, resource, resourceName, apiGroup, namespace string) (bool, error)
+)
 
 func simpleSARFunc(allowed bool, err error) sarFunc {
+	return func(_ string, _ []string, _, _, _, _, _ string) (bool, error) {
+		return allowed, err
+	}
+}
+
+func simpleSSARFunc(allowed bool, err error) ssarFunc {
 	return func(_, _, _, _, _ string) (bool, error) {
 		return allowed, err
 	}
 }
 
 var (
-	allowSAR = simpleSARFunc(true, nil)
-	denySAR  = simpleSARFunc(false, nil)
+	allowSAR  = simpleSARFunc(true, nil)
+	denySAR   = simpleSARFunc(false, nil)
+	allowSSAR = simpleSSARFunc(true, nil)
+	denySSAR  = simpleSSARFunc(false, nil)
 )
 
 type fakeClient struct {
-	sarFunc sarFunc
-	nsList  []string
-	nsErr   error
+	sarFunc  sarFunc
+	ssarFunc ssarFunc
+	nsList   []string
+	nsErr    error
+}
+
+func (f *fakeClient) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+	return f.sarFunc(user, groups, verb, resource, resourceName, apiGroup, namespace)
 }
 
 func (f *fakeClient) SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
-	return f.sarFunc(verb, resource, resourceName, apiGroup, namespace)
+	return f.ssarFunc(verb, resource, resourceName, apiGroup, namespace)
 }
 
 func (f *fakeClient) ListNamespaces() ([]string, error) {
@@ -80,11 +96,13 @@ func TestAuthorize(t *testing.T) {
 		cacheGetErr   error
 		cacheSetErr   error
 		sarFunc       sarFunc
+		ssarFunc      ssarFunc
 		nsList        []string
 		nsErr         error
 		verb          string
 		namespaces    []string
 		metadataOnly  bool
+		ssar          bool
 		wantAuthorize types.DataResponseV1
 		wantErr       error
 	}{
@@ -170,7 +188,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, namespaced",
 			matcher: namespaceMatcher,
-			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
 				if namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -185,7 +203,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, namespaced, cluster-wide SAR",
 			matcher: namespaceMatcher,
-			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
 				if namespace == "" || namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -200,7 +218,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "allow - get, with matcher, no cluster-wide access, meta request",
 			matcher: namespaceMatcher,
-			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
 				if namespace == "test-namespace-1" {
 					return true, nil
 				}
@@ -224,7 +242,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			desc:    "fail - get, with matcher, namespaced SAR failure",
 			matcher: namespaceMatcher,
-			sarFunc: func(_, _, _, _, namespace string) (bool, error) {
+			sarFunc: func(_ string, _ []string, _, _, _, _, namespace string) (bool, error) {
 				if namespace == "" {
 					return false, nil
 				}
@@ -236,6 +254,41 @@ func TestAuthorize(t *testing.T) {
 			namespaces: []string{"test-namespace-1"},
 			wantErr:    errors.New("namespaced SAR failed: namespaced SAR error"),
 		},
+		{
+			desc:     "ssar - fail - list namespace error",
+			matcher:  namespaceMatcher,
+			ssar:     true,
+			ssarFunc: allowSSAR,
+			nsErr:    errors.New("test list namespace error"),
+			verb:     GetVerb,
+			wantErr:  errors.New("failed to access api server: test list namespace error"),
+		},
+		{
+			desc:          "ssar - deny - get, with matcher, namespaced, no namespaces",
+			matcher:       namespaceMatcher,
+			ssar:          true,
+			ssarFunc:      denySSAR,
+			nsList:        []string{"test-namespace-0", "test-namespace-1"},
+			verb:          GetVerb,
+			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
+			wantAuthorize: minimalDataResponseV1(false),
+		},
+		{
+			desc:    "ssar - allow - get, with matcher, namespaced, cluster-wide SSAR",
+			matcher: namespaceMatcher,
+			ssar:    true,
+			ssarFunc: func(_, _, _, _, namespace string) (bool, error) {
+				if namespace == "" || namespace == "test-namespace-1" {
+					return true, nil
+				}
+
+				return false, nil
+			},
+			nsList:        []string{"test-namespace-1"},
+			verb:          GetVerb,
+			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
+			wantAuthorize: namespaceResponse,
+		},
 	}
 
 	for _, tc := range tt {
@@ -245,9 +298,10 @@ func TestAuthorize(t *testing.T) {
 			t.Parallel()
 
 			c := &fakeClient{
-				sarFunc: tc.sarFunc,
-				nsList:  tc.nsList,
-				nsErr:   tc.nsErr,
+				sarFunc:  tc.sarFunc,
+				ssarFunc: tc.ssarFunc,
+				nsList:   tc.nsList,
+				nsErr:    tc.nsErr,
 			}
 			l := log.NewNopLogger()
 			cc := &fakeCache{
@@ -257,7 +311,7 @@ func TestAuthorize(t *testing.T) {
 				setErr:      tc.cacheSetErr,
 			}
 
-			a := New(c, l, cc, tc.matcher)
+			a := New(c, l, cc, tc.matcher, tc.ssar)
 			authorize, err := a.Authorize(
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
