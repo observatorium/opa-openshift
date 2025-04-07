@@ -1,8 +1,8 @@
 module github.com/observatorium/opa-openshift
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.22.8
+toolchain go1.23.8
 
 require (
 	github.com/go-kit/log v0.2.1
@@ -67,7 +67,7 @@ require (
 	github.com/yashtewari/glob-intersection v0.2.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/oauth2 v0.22.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
