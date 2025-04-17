@@ -112,7 +112,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			level.Warn(l).Log("msg", "using debug.token in production environments is not recommended.") //nolint:errcheck
 		}
 
-		oc, err := openshift.NewClient(wt, kubeconfigPath, token)
+		oc, err := openshift.NewClient(wt, kubeconfigPath, token, cfg.Opa.SSAR)
 		if err != nil {
 			http.Error(w, "failed to create openshift client", http.StatusInternalServerError)
 
@@ -136,7 +136,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			}
 		}
 
-		a := authorizer.New(oc, l, c, matcherForRequest, cfg.Opa.SSAR)
+		a := authorizer.New(oc, l, c, matcherForRequest)
 
 		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly)
 		if err != nil {

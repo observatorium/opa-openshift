@@ -35,18 +35,18 @@ var (
 )
 
 type fakeClient struct {
+	ssar     bool
 	sarFunc  sarFunc
 	ssarFunc ssarFunc
 	nsList   []string
 	nsErr    error
 }
 
-func (f *fakeClient) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+func (f *fakeClient) AccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+	if f.ssar {
+		return f.ssarFunc(verb, resource, resourceName, apiGroup, namespace)
+	}
 	return f.sarFunc(user, groups, verb, resource, resourceName, apiGroup, namespace)
-}
-
-func (f *fakeClient) SelfSubjectAccessReview(verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
-	return f.ssarFunc(verb, resource, resourceName, apiGroup, namespace)
 }
 
 func (f *fakeClient) ListNamespaces() ([]string, error) {
@@ -300,6 +300,7 @@ func TestAuthorize(t *testing.T) {
 			c := &fakeClient{
 				sarFunc:  tc.sarFunc,
 				ssarFunc: tc.ssarFunc,
+				ssar:     tc.ssar,
 				nsList:   tc.nsList,
 				nsErr:    tc.nsErr,
 			}
@@ -311,7 +312,7 @@ func TestAuthorize(t *testing.T) {
 				setErr:      tc.cacheSetErr,
 			}
 
-			a := New(c, l, cc, tc.matcher, tc.ssar)
+			a := New(c, l, cc, tc.matcher)
 			authorize, err := a.Authorize(
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
