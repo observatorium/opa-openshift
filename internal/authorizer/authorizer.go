@@ -97,7 +97,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	//nolint:errcheck
 	level.Debug(a.logger).Log(
-		"msg", "cluster-scoped SubjectAccessReview",
+		"msg", "cluster-scoped AccessReview",
 		"user", user, "groups", fmt.Sprintf("%s", groups),
 		"res", resource, "name", resourceName, "api", apiGroup,
 		"allowed", clusterAllow,
@@ -141,7 +141,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 		}
 		//nolint:errcheck
 		level.Debug(a.logger).Log(
-			"msg", "namespace-scoped SubjectAccessReview",
+			"msg", "namespace-scoped AccessReview",
 			"user", user, "groups", fmt.Sprintf("%s", groups),
 			"res", resource, "name", resourceName, "api", apiGroup,
 			"allowed", nsAllowed, "namespace", ns,
