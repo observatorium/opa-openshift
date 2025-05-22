@@ -112,7 +112,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			level.Warn(l).Log("msg", "using debug.token in production environments is not recommended.") //nolint:errcheck
 		}
 
-		oc, err := openshift.NewClient(wt, kubeconfigPath, token)
+		oc, err := openshift.NewClient(wt, kubeconfigPath, token, cfg.Opa.SSAR)
 		if err != nil {
 			http.Error(w, "failed to create openshift client", http.StatusInternalServerError)
 

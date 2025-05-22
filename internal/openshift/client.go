@@ -23,13 +23,16 @@ import (
 // check authentication and authorization for
 // subjects.
 type Client interface {
-	SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
+	AccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
 	ListNamespaces() ([]string, error)
 }
 
 type client struct {
 	k8sClient     k8s.ClientSet
 	projectClient ocp.ProjectV1Client
+	// SSAR is true if the client will issue SelfSubjectAccessReview instead of
+	// SubjectAccessReview.
+	ssar bool
 }
 
 // NewClient returns a new OpenShift client holding a pointer to a k8s clientset
@@ -37,12 +40,16 @@ type client struct {
 // kube config file on a prescribed path or under $HOME/.kube. The loaded kube
 // configuration is sanitized and augmented with the subject's forwarded bearer
 // token.
-func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, error) {
+func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string, ssar bool) (Client, error) {
 	cfg, err := getConfig(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 
+	if ssar {
+		cfg = rest.AnonymousClientConfig(cfg)
+		cfg.BearerToken = token
+	}
 	cfg.WrapTransport = wt
 
 	clientset, err := kubernetes.NewForConfig(cfg)
@@ -64,12 +71,22 @@ func NewClient(wt transport.WrapperFunc, kubeconfigPath, token string) (Client, 
 	return &client{
 		k8sClient:     clientset,
 		projectClient: projectClient,
+		ssar:          ssar,
 	}, nil
 }
 
-// SubjectAccessReview requests a self subject access review from the k8s api server
+// SubjectAccessReview requests a subject access review from the k8s api server
 // for an authenticated user.
-func (c *client) SubjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+func (c *client) AccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+	if c.ssar {
+		return c.selfSubjectAccessReview(verb, resource, resourceName, apiGroup, namespace)
+	}
+	return c.subjectAccessReview(user, groups, verb, resource, resourceName, apiGroup, namespace)
+}
+
+// SubjectAccessReview requests a subject access review from the k8s api server
+// for an authenticated user.
+func (c *client) subjectAccessReview(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
 	ssar := &authorizationv1.SubjectAccessReview{
 		Spec: authorizationv1.SubjectAccessReviewSpec{
 			User:   user,
@@ -87,6 +104,29 @@ func (c *client) SubjectAccessReview(user string, groups []string, verb, resourc
 	res, err := c.k8sClient.AuthorizationV1().SubjectAccessReviews().Create(context.TODO(), ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to create subject access review: %w", err)
+	}
+
+	return res.Status.Allowed, nil
+}
+
+// SelfSubjectAccessReview requests a self subject access review from the k8s api server
+// for an authenticated user.
+func (c *client) selfSubjectAccessReview(verb, resource, resourceName, apiGroup, namespace string) (bool, error) {
+	ssar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      verb,
+				Group:     apiGroup,
+				Resource:  resource,
+				Name:      resourceName,
+			},
+		},
+	}
+
+	res, err := c.k8sClient.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), ssar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to create self subject access review: %w", err)
 	}
 
 	return res.Status.Allowed, nil
