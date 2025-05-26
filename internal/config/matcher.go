@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"slices"
 	"strings"
 )
@@ -20,12 +21,21 @@ type Matcher struct {
 	adminGroups map[string]struct{}
 }
 
-func newMatcher(keys []string, matcherOp MatcherOp, skipTenants, adminGroups map[string]struct{}) *Matcher {
+func (m *Matcher) Clone() *Matcher {
+	keysCopy := make([]string, len(m.Keys))
+	copy(keysCopy, m.Keys)
+
+	skipTenantsCopy := make(map[string]struct{}, len(m.skipTenants))
+	maps.Copy(skipTenantsCopy, m.skipTenants)
+
+	adminGroupsCopy := make(map[string]struct{}, len(m.adminGroups))
+	maps.Copy(adminGroupsCopy, m.adminGroups)
+
 	return &Matcher{
-		Keys:        keys,
-		MatcherOp:   matcherOp,
-		skipTenants: skipTenants,
-		adminGroups: adminGroups,
+		Keys:        keysCopy,
+		MatcherOp:   m.MatcherOp,
+		skipTenants: skipTenantsCopy,
+		adminGroups: adminGroupsCopy,
 	}
 }
 
@@ -94,11 +104,7 @@ func (m *Matcher) ForRequest(tenant string, groups []string) *Matcher {
 		}
 	}
 
-	// Copy the keys array for request-specific modifications
-	keysCopy := make([]string, len(m.Keys))
-	copy(keysCopy, m.Keys)
-
-	return newMatcher(keysCopy, m.MatcherOp, m.skipTenants, m.adminGroups)
+	return m.Clone() // Return a clone for request-specific modifications
 }
 
 func (m *Matcher) ViaQToOTELMigration(selectors map[string][]string) {
