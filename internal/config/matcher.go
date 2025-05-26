@@ -1,6 +1,10 @@
 package config
 
-import "strings"
+import (
+	"maps"
+	"slices"
+	"strings"
+)
 
 type MatcherOp string
 
@@ -17,6 +21,15 @@ type Matcher struct {
 	adminGroups map[string]struct{}
 }
 
+func (m *Matcher) Clone() *Matcher {
+	return &Matcher{
+		Keys:        slices.Clone(m.Keys),
+		MatcherOp:   m.MatcherOp,
+		skipTenants: maps.Clone(m.skipTenants),
+		adminGroups: maps.Clone(m.adminGroups),
+	}
+}
+
 func (c *OPAConfig) ToMatcher() Matcher {
 	matcherKeys := c.Matcher
 	matcherOp := MatcherOp(c.MatcherOp)
@@ -29,10 +42,8 @@ func (c *OPAConfig) ToMatcher() Matcher {
 		adminGroups: adminGroups,
 	}
 
-	if matcherOp != "" {
-		matcher.Keys = strings.Split(matcherKeys, matchersSeparator)
-	} else if matcherKeys != "" {
-		matcher.Keys = []string{matcherKeys}
+	if keys := strings.Split(matcherKeys, matchersSeparator); len(keys) > 0 && keys[0] != "" {
+		matcher.Keys = keys
 	}
 
 	return matcher
@@ -84,5 +95,20 @@ func (m *Matcher) ForRequest(tenant string, groups []string) *Matcher {
 		}
 	}
 
-	return m
+	return m.Clone() // Return a clone for request-specific modifications
+}
+
+func (m *Matcher) ViaQToOTELMigration(selectors map[string][]string) {
+	if vals, ok := selectors["k8s_namespace_name"]; ok && len(vals) > 0 {
+		if i := slices.Index(m.Keys, "kubernetes_namespace_name"); i != -1 {
+			m.Keys = slices.Delete(m.Keys, i, i+1)
+		}
+		return
+	}
+	// Here we always delete the key "k8s_namespace_name" from the keys
+	// to cover both the cases where kubernetes_namespace_name is present or no
+	// selectors were present
+	if i := slices.Index(m.Keys, "k8s_namespace_name"); i != -1 {
+		m.Keys = slices.Delete(m.Keys, i, i+1)
+	}
 }
