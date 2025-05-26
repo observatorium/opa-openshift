@@ -22,20 +22,11 @@ type Matcher struct {
 }
 
 func (m *Matcher) Clone() *Matcher {
-	keysCopy := make([]string, len(m.Keys))
-	copy(keysCopy, m.Keys)
-
-	skipTenantsCopy := make(map[string]struct{}, len(m.skipTenants))
-	maps.Copy(skipTenantsCopy, m.skipTenants)
-
-	adminGroupsCopy := make(map[string]struct{}, len(m.adminGroups))
-	maps.Copy(adminGroupsCopy, m.adminGroups)
-
 	return &Matcher{
-		Keys:        keysCopy,
+		Keys:        slices.Clone(m.Keys),
 		MatcherOp:   m.MatcherOp,
-		skipTenants: skipTenantsCopy,
-		adminGroups: adminGroupsCopy,
+		skipTenants: maps.Clone(m.skipTenants),
+		adminGroups: maps.Clone(m.adminGroups),
 	}
 }
 
