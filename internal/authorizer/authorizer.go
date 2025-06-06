@@ -61,7 +61,7 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusBadRequest}
 	}
 
-	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly)
+	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly, a.matcher)
 
 	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey) //nolint:errcheck
 	res, ok, err := a.cache.Get(cacheKey)

@@ -2,6 +2,8 @@ package authorizer
 
 import (
 	"testing"
+
+	"github.com/observatorium/opa-openshift/internal/config"
 )
 
 const (
@@ -10,6 +12,16 @@ const (
 )
 
 func TestGenerateCacheKey(t *testing.T) {
+	// Create a test matcher for consistent testing
+	testMatcher := &config.Matcher{
+		Keys:      []string{"kubernetes_namespace_name"},
+		MatcherOp: config.MatcherOr,
+	}
+	newMatcher := &config.Matcher{
+		Keys:      []string{"k8s_namespace_name"},
+		MatcherOp: config.MatcherOr,
+	}
+
 	tt := []struct {
 		desc         string
 		token        string
@@ -21,6 +33,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		apiGroup     string
 		namespaces   []string
 		metadataOnly bool
+		matcher      *config.Matcher
 		wantKey      string
 	}{
 		{
@@ -38,7 +51,26 @@ func TestGenerateCacheKey(t *testing.T) {
 			namespaces: []string{
 				"log-test-0",
 			},
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130",
+			matcher: testMatcher,
+			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
+		},
+		{
+			desc:  "kubeadmin",
+			token: "sha256~tokentokentokentokentokentokentokentokentok",
+			user:  "kube:admin",
+			groups: []string{
+				"system:cluster-admins",
+				"system:authenticated",
+			},
+			verb:         GetVerb,
+			resource:     "logs",
+			resourceName: "application",
+			apiGroup:     "loki.grafana.com",
+			namespaces: []string{
+				"log-test-0",
+			},
+			matcher: newMatcher,
+			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:63ef1e06752e96333e3ae17570b81df7b194ad421c2a8920708832815bf0a6b0",
 		},
 		{
 			desc:  "logcollector",
@@ -54,7 +86,8 @@ func TestGenerateCacheKey(t *testing.T) {
 			resourceName: "infrastructure",
 			apiGroup:     "loki.grafana.com",
 			namespaces:   []string{},
-			wantKey:      "create,false,loki.grafana.com,infrastructure,logs,,system:serviceaccount:openshift-logging:logcollector:4209c35b9ede6e39245d0c141006cb523d44bf65f04fdf834e164de263842753",
+			matcher:      testMatcher,
+			wantKey:      "create,false,loki.grafana.com,infrastructure,logs,,system:serviceaccount:openshift-logging:logcollector:4209c35b9ede6e39245d0c141006cb523d44bf65f04fdf834e164de263842753,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
 			desc:  "test user",
@@ -71,7 +104,8 @@ func TestGenerateCacheKey(t *testing.T) {
 			namespaces: []string{
 				"log-test-0",
 			},
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a",
+			matcher: testMatcher,
+			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
 			desc:  "test user - metadata request",
@@ -89,13 +123,14 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			metadataOnly: true,
-			wantKey:      "get,true,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a",
+			matcher:      testMatcher,
+			wantKey:      "get,true,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			got := generateCacheKey(tc.token, tc.user, tc.groups, tc.verb, tc.resource, tc.resourceName, tc.apiGroup, tc.namespaces, tc.metadataOnly)
+			got := generateCacheKey(tc.token, tc.user, tc.groups, tc.verb, tc.resource, tc.resourceName, tc.apiGroup, tc.namespaces, tc.metadataOnly, tc.matcher)
 
 			if got != tc.wantKey {
 				t.Errorf("got cache key %q, want %q", got, tc.wantKey)
