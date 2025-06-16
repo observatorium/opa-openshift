@@ -55,7 +55,7 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
-			desc:  "kubeadmin",
+			desc:  "kubeadmin - new OTEL matcher",
 			token: "sha256~tokentokentokentokentokentokentokentokentok",
 			user:  "kube:admin",
 			groups: []string{
@@ -71,6 +71,42 @@ func TestGenerateCacheKey(t *testing.T) {
 			},
 			matcher: newMatcher,
 			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:63ef1e06752e96333e3ae17570b81df7b194ad421c2a8920708832815bf0a6b0",
+		},
+		{
+			desc:  "kubeadmin - empty matcher",
+			token: "sha256~tokentokentokentokentokentokentokentokentok",
+			user:  "kube:admin",
+			groups: []string{
+				"system:cluster-admins",
+				"system:authenticated",
+			},
+			verb:         GetVerb,
+			resource:     "logs",
+			resourceName: "application",
+			apiGroup:     "loki.grafana.com",
+			namespaces: []string{
+				"log-test-0",
+			},
+			matcher: config.EmptyMatcher(),
+			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
+		},
+		{
+			desc:  "kubeadmin - nil matcher",
+			token: "sha256~tokentokentokentokentokentokentokentokentok",
+			user:  "kube:admin",
+			groups: []string{
+				"system:cluster-admins",
+				"system:authenticated",
+			},
+			verb:         GetVerb,
+			resource:     "logs",
+			resourceName: "application",
+			apiGroup:     "loki.grafana.com",
+			namespaces: []string{
+				"log-test-0",
+			},
+			matcher: nil,
+			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
 		},
 		{
 			desc:  "logcollector",

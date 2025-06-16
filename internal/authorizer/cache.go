@@ -40,8 +40,8 @@ func hashUserinfo(token, user string, groups []string) string {
 }
 
 func hashMatcher(matcher *config.Matcher) string {
-	if matcher == nil {
-		return ""
+	if matcher == nil || len(matcher.Keys) == 0 {
+		return "m:empty"
 	}
 
 	// Include the Keys slice (which can be modified by ViaQToOTELMigration)
