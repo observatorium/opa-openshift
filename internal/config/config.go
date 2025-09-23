@@ -37,6 +37,7 @@ type OPAConfig struct {
 	MatcherOp           string
 	MatcherSkipTenants  string
 	MatcherAdminGroups  string
+	MatchersConfig      string
 	SSAR                bool
 	ViaQToOTELMigration bool
 }
@@ -110,6 +111,7 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.Opa.MatcherOp, "opa.matcher-op", "", "When several matchers are supplied (coma-separated string), this is the logical operation to perform. Allowed values: 'and', 'or'.")                              //nolint:lll
 	flag.StringVar(&cfg.Opa.MatcherSkipTenants, "opa.skip-tenants", "", "Tenants for which the label matcher should not be set as comma-separated values.")
 	flag.StringVar(&cfg.Opa.MatcherAdminGroups, "opa.admin-groups", "", "Groups which should be treated as admins and cause the matcher to be omitted.")
+	flag.StringVar(&cfg.Opa.MatchersConfig, "opa.matchersConfig", "", "Matchers JSON object as string. When specified, this will override all others matcher options.") //nolint:lll
 	flag.BoolVar(&cfg.Opa.SSAR, "opa.ssar", false, "Use SelftSubjectAccessReview instead of SubjectAccessReview.")
 	flag.BoolVar(&cfg.Opa.ViaQToOTELMigration, "opa.viaq-to-otel-migration", false, "Enable the ViaQ to OTel migration.")
 
