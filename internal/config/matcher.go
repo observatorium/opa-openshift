@@ -1,7 +1,7 @@
 package config
 
 import (
-	"maps"
+	"encoding/json"
 	"slices"
 	"strings"
 )
@@ -14,58 +14,69 @@ const (
 	matchersSeparator = ","
 )
 
-type Matcher struct {
-	Keys        []string
-	MatcherOp   MatcherOp
-	skipTenants map[string]struct{}
-	adminGroups map[string]struct{}
+type Matchers struct {
+	ByGroup  map[string]Matcher `json:"byGroup,omitempty"`
+	ByTenant map[string]Matcher `json:"byTenant,omitempty"`
+	Default  Matcher            `json:"default,omitempty"`
 }
 
+type Matcher struct {
+	Keys      []string  `json:"keys,omitempty"`
+	MatcherOp MatcherOp `json:"op,omitempty"`
+}
+
+// Return a clone for request-specific modifications
 func (m *Matcher) Clone() *Matcher {
 	return &Matcher{
-		Keys:        slices.Clone(m.Keys),
-		MatcherOp:   m.MatcherOp,
-		skipTenants: maps.Clone(m.skipTenants),
-		adminGroups: maps.Clone(m.adminGroups),
+		Keys:      slices.Clone(m.Keys),
+		MatcherOp: m.MatcherOp,
 	}
 }
 
-func (c *OPAConfig) ToMatcher() Matcher {
-	matcherKeys := c.Matcher
-	matcherOp := MatcherOp(c.MatcherOp)
-	skipTenants := prepareMap(c.MatcherSkipTenants)
-	adminGroups := prepareMap(c.MatcherAdminGroups)
-
-	matcher := Matcher{
-		MatcherOp:   matcherOp,
-		skipTenants: skipTenants,
-		adminGroups: adminGroups,
+func (c *OPAConfig) ToMatchers() (*Matchers, error) {
+	var matchers Matchers
+	if c.MatchersConfig != "" {
+		err := json.Unmarshal([]byte(c.MatchersConfig), &matchers)
+		if err != nil {
+			return nil, err
+		}
+		return &matchers, nil
 	}
 
-	if keys := strings.Split(matcherKeys, matchersSeparator); len(keys) > 0 && keys[0] != "" {
-		matcher.Keys = keys
+	var defaultKeys []string
+	if keys := strings.Split(c.Matcher, matchersSeparator); len(keys) > 0 && keys[0] != "" {
+		defaultKeys = keys
 	}
 
-	return matcher
+	matchers = Matchers{
+		ByGroup:  emptyMatchers(c.MatcherAdminGroups),
+		ByTenant: emptyMatchers(c.MatcherSkipTenants),
+		Default: Matcher{
+			Keys:      defaultKeys,
+			MatcherOp: MatcherOp(c.MatcherOp),
+		},
+	}
+
+	return &matchers, nil
 }
 
-func prepareMap(csvInput string) map[string]struct{} {
+func emptyMatchers(csvInput string) map[string]Matcher {
 	if csvInput == "" {
 		return nil
 	}
 
 	tokens := strings.Split(csvInput, ",")
 
-	skipMap := make(map[string]struct{}, len(tokens))
+	matcherMap := make(map[string]Matcher, len(tokens))
 	for _, token := range tokens {
 		if token == "" {
 			continue
 		}
 
-		skipMap[token] = struct{}{}
+		matcherMap[token] = *EmptyMatcher()
 	}
 
-	return skipMap
+	return matcherMap
 }
 
 func (m *Matcher) IsEmpty() bool {
@@ -80,22 +91,18 @@ func EmptyMatcher() *Matcher {
 	return &Matcher{}
 }
 
-func (m *Matcher) ForRequest(tenant string, groups []string) *Matcher {
-	if m.IsEmpty() {
-		return m
-	}
-
-	if _, skip := m.skipTenants[tenant]; skip {
-		return EmptyMatcher()
-	}
-
+func (m *Matchers) ForRequest(tenant string, groups []string) *Matcher {
 	for _, group := range groups {
-		if _, admin := m.adminGroups[group]; admin {
-			return EmptyMatcher()
+		if m, found := m.ByGroup[group]; found {
+			return m.Clone()
 		}
 	}
 
-	return m.Clone() // Return a clone for request-specific modifications
+	if m, found := m.ByTenant[tenant]; found {
+		return m.Clone()
+	}
+
+	return m.Default.Clone()
 }
 
 func (m *Matcher) ViaQToOTELMigration(selectors map[string][]string) {
