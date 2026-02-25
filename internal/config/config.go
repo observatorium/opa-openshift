@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	stdlog "log"
 	"regexp"
@@ -13,6 +14,12 @@ import (
 var (
 	validRule    = regexp.MustCompile(`^[_A-Za-z][\w]*$`)
 	validPackage = regexp.MustCompile(`^[_A-Za-z][\w]*(\.[_A-Za-z][\w]*)*$`)
+
+	errInvalidOPAPackage  = errors.New("invalid OPA package name")
+	errInvalidOPARule     = errors.New("invalid OPA rule name")
+	errInvalidMapping     = errors.New("invalid mapping")
+	errViaQOTELMatcher    = errors.New("OPA matcher must contain both 'kubernetes_namespace_name' and 'k8s_namespace_name' when ViaQ to OTel migration is enabled")
+	errUnexpectedLogLevel = errors.New("unexpected log level")
 )
 
 type Config struct {
@@ -140,11 +147,11 @@ func ParseFlags() (*Config, error) {
 	}
 
 	if len(cfg.Opa.Pkg) > 0 && !validPackage.Match([]byte(cfg.Opa.Pkg)) {
-		return nil, fmt.Errorf("invalid OPA package name: %s", cfg.Opa.Pkg) //nolint:goerr113
+		return nil, fmt.Errorf("%w: %s", errInvalidOPAPackage, cfg.Opa.Pkg)
 	}
 
 	if len(cfg.Opa.Rule) > 0 && !validRule.Match([]byte(cfg.Opa.Rule)) {
-		return nil, fmt.Errorf("invalid OPA rule name: %s", cfg.Opa.Rule) //nolint:goerr113
+		return nil, fmt.Errorf("%w: %s", errInvalidOPARule, cfg.Opa.Rule)
 	}
 
 	if *mappingsRaw == nil {
@@ -156,15 +163,15 @@ func ParseFlags() (*Config, error) {
 	for _, m := range *mappingsRaw {
 		parts := strings.Split(m, "=")
 		if len(parts) != 2 { //nolint:gomnd
-			return nil, fmt.Errorf("invalid mapping: %q", m) //nolint:goerr113
+			return nil, fmt.Errorf("%w: %q", errInvalidMapping, m)
 		}
 
 		cfg.Mappings[parts[0]] = parts[1]
 	}
 
 	if cfg.Opa.ViaQToOTELMigration {
-		if !(strings.Contains(cfg.Opa.Matcher, "kubernetes_namespace_name") && strings.Contains(cfg.Opa.Matcher, "k8s_namespace_name")) {
-			return nil, fmt.Errorf("OPA matcher must contain both 'kubernetes_namespace_name' and 'k8s_namespace_name' when ViaQ to OTel migration is enabled")
+		if !strings.Contains(cfg.Opa.Matcher, "kubernetes_namespace_name") || !strings.Contains(cfg.Opa.Matcher, "k8s_namespace_name") {
+			return nil, errViaQOTELMatcher
 		}
 	}
 
@@ -182,6 +189,6 @@ func parseLogLevel(logLevelRaw *string) (level.Option, error) {
 	case "debug":
 		return level.AllowDebug(), nil
 	default:
-		return nil, fmt.Errorf("unexpected log level: %s", *logLevelRaw) //nolint:goerr113
+		return nil, fmt.Errorf("%w: %s", errUnexpectedLogLevel, *logLevelRaw)
 	}
 }

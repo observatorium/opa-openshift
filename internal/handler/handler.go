@@ -66,7 +66,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			http.Error(w, "failed to read body", http.StatusInternalServerError)
 			return //nolint:nlreturn
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		var req dataRequestV1
 

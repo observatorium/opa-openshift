@@ -31,7 +31,7 @@ func NewServerConfig(logger log.Logger, certFile, keyFile, minVersion string, ci
 
 	cipherSuiteIDs, err := flag.TLSCipherSuites(cipherSuites)
 	if err != nil {
-		return nil, fmt.Errorf("TLS cipher suite name to ID conversion: %v", err)
+		return nil, fmt.Errorf("TLS cipher suite name to ID conversion: %w", err)
 	}
 
 	tlsCfg := &tls.Config{

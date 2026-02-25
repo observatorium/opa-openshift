@@ -60,17 +60,12 @@ build: opa-openshift
 format: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --fix -c .golangci.yml
 
-.PHONY: go-fmt
-go-fmt: $(GOFUMPT)
-	@fmt_res=$$($(GOFUMPT) -l -w $$(find . -type f -name '*.go' -not -path './internal/external/k8s/k8sfakes/*' -not -path './internal/external/ocp/ocpfakes/*' -not -path '${TMP_DIR}/*')); if [ -n "$$fmt_res" ]; then printf '\nGofmt found style issues. Please check the reported issues\nand fix them if necessary before submitting the code for review:\n\n%s' "$$fmt_res"; exit 1; fi
-
 .PHONY: shellcheck
 shellcheck: $(SHELLCHECK)
 	$(SHELLCHECK) $(shell find . -type f -name "*.sh" -not -path "*vendor*" -not -path "${TMP_DIR}/*")
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) go-fmt shellcheck
-	$(GOLANGCI_LINT) run -c .golangci.yml
+lint: $(GOLANGCI_LINT) format shellcheck
 
 .PHONY: test
 test: build test-unit test-integration

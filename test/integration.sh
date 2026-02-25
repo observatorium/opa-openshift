@@ -11,7 +11,7 @@ source .bingo/variables.env
 result=1
 trap 'kill $(jobs -p); cleanup; exit $result' EXIT
 
-# shellcheck disable=SC2317
+# shellcheck disable=SC2317,SC2329
 cleanup(){
     echo "-------------------------------------------"
     echo "- Cleanup users, role and rolebindings... -"
