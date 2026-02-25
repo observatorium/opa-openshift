@@ -12,7 +12,7 @@ import (
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
 	"github.com/open-policy-agent/opa/v1/server/types"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 )
 
 const (
