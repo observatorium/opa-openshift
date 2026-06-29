@@ -7,6 +7,8 @@ import (
 	"os/user"
 	"path"
 
+	"github.com/observatorium/opa-openshift/internal/external/k8s"
+	"github.com/observatorium/opa-openshift/internal/external/ocp"
 	projectv1 "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,9 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
-
-	"github.com/observatorium/opa-openshift/internal/external/k8s"
-	"github.com/observatorium/opa-openshift/internal/external/ocp"
 )
 
 // Client is the standard openshift client to

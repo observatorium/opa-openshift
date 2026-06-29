@@ -2,6 +2,7 @@ package authorizer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,13 +13,15 @@ import (
 	"github.com/observatorium/opa-openshift/internal/config"
 	"github.com/observatorium/opa-openshift/internal/openshift"
 	"github.com/open-policy-agent/opa/v1/server/types"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 )
 
 const (
 	GetVerb    = "get"
 	CreateVerb = "create"
 )
+
+var errUnexpectedVerb = errors.New("unexpected verb")
 
 type Authorizer struct {
 	client  openshift.Client
@@ -58,7 +61,7 @@ func (a *Authorizer) Authorize(
 	switch verb {
 	case CreateVerb, GetVerb:
 	default:
-		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("unexpected verb: %s", verb), http.StatusBadRequest}
+		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("%w: %s", errUnexpectedVerb, verb), http.StatusBadRequest}
 	}
 
 	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly, a.matcher)
@@ -115,7 +118,8 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	if metadataOnly && len(namespaces) == 0 {
 		// Only a metadata request and no namespaces provided -> populate with API list
-		nsList, err := a.client.ListNamespaces()
+		var nsList []string
+		nsList, err = a.client.ListNamespaces()
 		if err != nil {
 			return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("failed to access api server: %w", err), http.StatusUnauthorized}
 		}
@@ -134,7 +138,8 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	allowed := []string{}
 	for _, ns := range namespaces {
-		nsAllowed, err := a.client.AccessReview(user, groups, verb, resource, resourceName, apiGroup, ns)
+		var nsAllowed bool
+		nsAllowed, err = a.client.AccessReview(user, groups, verb, resource, resourceName, apiGroup, ns)
 		if err != nil {
 			return types.DataResponseV1{},
 				&StatusCodeError{fmt.Errorf("namespaced SAR failed: %w", err), http.StatusUnauthorized}
@@ -202,7 +207,6 @@ func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataRespon
 
 func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
 	var res interface{} = allowed
-	//nolint:exhaustivestruct
 	return types.DataResponseV1{Result: &res}
 }
 
@@ -239,6 +243,5 @@ func newDataResponseV1(ns []string, matcher *config.Matcher) (types.DataResponse
 		"data":    string(data),
 	}
 
-	//nolint:exhaustivestruct
 	return types.DataResponseV1{Result: &res}, nil
 }

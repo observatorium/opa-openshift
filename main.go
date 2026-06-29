@@ -119,7 +119,7 @@ func main() {
 		// checks if server is up
 		healthchecks.AddLivenessCheck("http",
 			healthcheck.HTTPCheckClient(
-				&http.Client{Transport: t}, //nolint:exhaustivestruct
+				&http.Client{Transport: t},
 				cfg.Server.HealthcheckURL,
 				http.MethodGet,
 				http.StatusNotFound,
@@ -158,7 +158,6 @@ func main() {
 			return
 		}
 
-		//nolint:exhaustivestruct
 		s := http.Server{
 			Addr:      cfg.Server.Listen,
 			Handler:   m,
@@ -201,7 +200,6 @@ func main() {
 			internalserver.WithPProf(),
 		)
 
-		//nolint:exhaustivestruct
 		s := http.Server{
 			Addr:      cfg.Server.ListenInternal,
 			Handler:   h,

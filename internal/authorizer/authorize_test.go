@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	errGetCache      = errors.New("get-cache error")
+	errTestSAR       = errors.New("test SAR error")
+	errListNamespace = errors.New("test list namespace error")
+	errNamespacedSAR = errors.New("namespaced SAR error")
+)
+
 type (
 	sarFunc  func(user string, groups []string, verb, resource, resourceName, apiGroup, namespace string) (bool, error)
 	ssarFunc func(verb, resource, resourceName, apiGroup, namespace string) (bool, error)
@@ -104,7 +111,7 @@ func TestAuthorize(t *testing.T) {
 		metadataOnly  bool
 		ssar          bool
 		wantAuthorize types.DataResponseV1
-		wantErr       error
+		wantErrMsg    string
 	}{
 		{
 			desc:    "allow - get, no matcher",
@@ -115,7 +122,6 @@ func TestAuthorize(t *testing.T) {
 			},
 			verb:          GetVerb,
 			wantAuthorize: minimalDataResponseV1(true),
-			wantErr:       nil,
 		},
 		{
 			desc:    "allow - get, with matcher",
@@ -126,7 +132,6 @@ func TestAuthorize(t *testing.T) {
 			},
 			verb:          GetVerb,
 			wantAuthorize: namespaceResponse,
-			wantErr:       nil,
 		},
 		{
 			desc:          "deny - get, with matcher, no namespaces",
@@ -135,7 +140,6 @@ func TestAuthorize(t *testing.T) {
 			nsList:        []string{},
 			verb:          GetVerb,
 			wantAuthorize: namespaceResponseDeny,
-			wantErr:       nil,
 		},
 		{
 			desc:          "allow - create",
@@ -144,39 +148,38 @@ func TestAuthorize(t *testing.T) {
 			nsList:        []string{},
 			verb:          CreateVerb,
 			wantAuthorize: minimalDataResponseV1(true),
-			wantErr:       nil,
 		},
 		{
 			desc:        "fail - cache get error",
-			cacheGetErr: errors.New("get-cache error"),
+			cacheGetErr: errGetCache,
 			verb:        GetVerb,
-			wantErr:     errors.New("failed to fetch authorization response from cache: get-cache error"),
+			wantErrMsg:  "failed to fetch authorization response from cache: get-cache error",
 		},
 		{
-			desc:    "fail - wrong verb",
-			matcher: config.EmptyMatcher(),
-			sarFunc: allowSAR,
-			nsList:  []string{},
-			verb:    "invalid",
-			wantErr: errors.New("unexpected verb: invalid"),
+			desc:       "fail - wrong verb",
+			matcher:    config.EmptyMatcher(),
+			sarFunc:    allowSAR,
+			nsList:     []string{},
+			verb:       "invalid",
+			wantErrMsg: "unexpected verb: invalid",
 		},
 		{
 			desc:    "fail - SAR error",
 			matcher: config.EmptyMatcher(),
-			sarFunc: simpleSARFunc(false, errors.New("test SAR error")),
+			sarFunc: simpleSARFunc(false, errTestSAR),
 			nsList: []string{
 				"test-namespace-1",
 			},
-			verb:    GetVerb,
-			wantErr: errors.New("cluster-wide SAR failed: test SAR error"),
+			verb:       GetVerb,
+			wantErrMsg: "cluster-wide SAR failed: test SAR error",
 		},
 		{
-			desc:    "fail - list namespace error",
-			matcher: namespaceMatcher,
-			sarFunc: allowSAR,
-			nsErr:   errors.New("test list namespace error"),
-			verb:    GetVerb,
-			wantErr: errors.New("failed to access api server: test list namespace error"),
+			desc:       "fail - list namespace error",
+			matcher:    namespaceMatcher,
+			sarFunc:    allowSAR,
+			nsErr:      errListNamespace,
+			verb:       GetVerb,
+			wantErrMsg: "failed to access api server: test list namespace error",
 		},
 		{
 			desc:          "allow - cached",
@@ -247,21 +250,21 @@ func TestAuthorize(t *testing.T) {
 					return false, nil
 				}
 
-				return false, errors.New("namespaced SAR error")
+				return false, errNamespacedSAR
 			},
 			nsList:     []string{"test-namespace-0", "test-namespace-1"},
 			verb:       GetVerb,
 			namespaces: []string{"test-namespace-1"},
-			wantErr:    errors.New("namespaced SAR failed: namespaced SAR error"),
+			wantErrMsg: "namespaced SAR failed: namespaced SAR error",
 		},
 		{
-			desc:     "ssar - fail - list namespace error",
-			matcher:  namespaceMatcher,
-			ssar:     true,
-			ssarFunc: allowSSAR,
-			nsErr:    errors.New("test list namespace error"),
-			verb:     GetVerb,
-			wantErr:  errors.New("failed to access api server: test list namespace error"),
+			desc:       "ssar - fail - list namespace error",
+			matcher:    namespaceMatcher,
+			ssar:       true,
+			ssarFunc:   allowSSAR,
+			nsErr:      errListNamespace,
+			verb:       GetVerb,
+			wantErrMsg: "failed to access api server: test list namespace error",
 		},
 		{
 			desc:          "ssar - deny - get, with matcher, namespaced, no namespaces",
@@ -292,8 +295,6 @@ func TestAuthorize(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
-
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -320,10 +321,10 @@ func TestAuthorize(t *testing.T) {
 				tc.namespaces, tc.metadataOnly,
 			)
 
-			if tc.wantErr == nil {
+			if tc.wantErrMsg == "" {
 				require.NoError(t, err)
 			} else {
-				require.EqualError(t, err, tc.wantErr.Error())
+				require.EqualError(t, err, tc.wantErrMsg)
 			}
 			require.Equal(t, tc.wantAuthorize, authorize)
 		})
