@@ -143,10 +143,6 @@ func (fake *FakeClientSet) AuthorizationV1ReturnsOnCall(i int, result1 v1a.Autho
 func (fake *FakeClientSet) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.authenticationV1Mutex.RLock()
-	defer fake.authenticationV1Mutex.RUnlock()
-	fake.authorizationV1Mutex.RLock()
-	defer fake.authorizationV1Mutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
