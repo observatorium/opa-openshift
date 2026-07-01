@@ -79,8 +79,6 @@ func (fake *FakeProjectV1Client) ProjectsReturnsOnCall(i int, result1 v1.Project
 func (fake *FakeProjectV1Client) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.projectsMutex.RLock()
-	defer fake.projectsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

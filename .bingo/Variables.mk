@@ -41,11 +41,11 @@ $(EMBEDMD): $(BINGO_DIR)/embedmd.mod
 	@echo "(re)installing $(GOBIN)/embedmd-v1.0.0"
 	@cd $(BINGO_DIR) && GOWORK=off GOOS=$(GOHOSTOS) GOARCH=$(GOHOSTARCH) GOARM=$(GOHOSTARM) $(GO) build -mod=mod -modfile=embedmd.mod -o=$(GOBIN)/embedmd-v1.0.0 "github.com/campoy/embedmd"
 
-GOLANGCI_LINT := $(GOBIN)/golangci-lint-v2.8.0
+GOLANGCI_LINT := $(GOBIN)/golangci-lint-v2.12.2
 $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/golangci-lint-v2.8.0"
-	@cd $(BINGO_DIR) && GOWORK=off GOOS=$(GOHOSTOS) GOARCH=$(GOHOSTARCH) GOARM=$(GOHOSTARM) $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v2.8.0 "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
+	@echo "(re)installing $(GOBIN)/golangci-lint-v2.12.2"
+	@cd $(BINGO_DIR) && GOWORK=off GOOS=$(GOHOSTOS) GOARCH=$(GOHOSTARCH) GOARM=$(GOHOSTARM) $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v2.12.2 "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 
 LOKI := $(GOBIN)/loki-v1.6.2-0.20230224170420-98421b0c0187
 $(LOKI): $(BINGO_DIR)/loki.mod

@@ -341,16 +341,6 @@ func (fake *FakeAuthorizationV1Interface) SubjectAccessReviewsReturnsOnCall(i in
 func (fake *FakeAuthorizationV1Interface) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.localSubjectAccessReviewsMutex.RLock()
-	defer fake.localSubjectAccessReviewsMutex.RUnlock()
-	fake.rESTClientMutex.RLock()
-	defer fake.rESTClientMutex.RUnlock()
-	fake.selfSubjectAccessReviewsMutex.RLock()
-	defer fake.selfSubjectAccessReviewsMutex.RUnlock()
-	fake.selfSubjectRulesReviewsMutex.RLock()
-	defer fake.selfSubjectRulesReviewsMutex.RUnlock()
-	fake.subjectAccessReviewsMutex.RLock()
-	defer fake.subjectAccessReviewsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

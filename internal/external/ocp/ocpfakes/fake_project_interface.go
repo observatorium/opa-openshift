@@ -909,28 +909,6 @@ func (fake *FakeProjectInterface) WatchReturnsOnCall(i int, result1 watch.Interf
 func (fake *FakeProjectInterface) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.applyMutex.RLock()
-	defer fake.applyMutex.RUnlock()
-	fake.applyStatusMutex.RLock()
-	defer fake.applyStatusMutex.RUnlock()
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.deleteCollectionMutex.RLock()
-	defer fake.deleteCollectionMutex.RUnlock()
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
-	fake.listMutex.RLock()
-	defer fake.listMutex.RUnlock()
-	fake.patchMutex.RLock()
-	defer fake.patchMutex.RUnlock()
-	fake.updateMutex.RLock()
-	defer fake.updateMutex.RUnlock()
-	fake.updateStatusMutex.RLock()
-	defer fake.updateStatusMutex.RUnlock()
-	fake.watchMutex.RLock()
-	defer fake.watchMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

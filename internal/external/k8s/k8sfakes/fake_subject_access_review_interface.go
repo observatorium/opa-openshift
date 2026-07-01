@@ -99,8 +99,6 @@ func (fake *FakeSubjectAccessReviewInterface) CreateReturnsOnCall(i int, result1
 func (fake *FakeSubjectAccessReviewInterface) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
