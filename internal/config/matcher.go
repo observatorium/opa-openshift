@@ -89,13 +89,16 @@ func (m *Matcher) ForRequest(tenant string, groups []string) *Matcher {
 		return EmptyMatcher()
 	}
 
+	return m.Clone() // Return a clone for request-specific modifications
+}
+
+func (m *Matcher) IsAdmin(groups []string) bool {
 	for _, group := range groups {
 		if _, admin := m.adminGroups[group]; admin {
-			return EmptyMatcher()
+			return true
 		}
 	}
-
-	return m.Clone() // Return a clone for request-specific modifications
+	return false
 }
 
 func (m *Matcher) ViaQToOTELMigration(selectors map[string][]string) {
