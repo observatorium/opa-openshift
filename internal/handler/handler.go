@@ -119,7 +119,15 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
-		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
+		isAdmin := matcher.IsAdmin(req.Input.Groups)
+
+		var matcherForRequest *config.Matcher
+		if isAdmin {
+			matcherForRequest = config.EmptyMatcher()
+		} else {
+			matcherForRequest = matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
+		}
+
 		extras := req.Input.Extras
 		if extras.WildcardSelectors && !matcherForRequest.IsEmpty() {
 			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
@@ -151,7 +159,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 
 		a := authorizer.New(oc, l, c, matcherForRequest)
 
-		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly)
+		res, err := a.Authorize(token, req.Input.Subject, req.Input.Groups, verb, req.Input.Tenant, req.Input.Resource, apiGroup, namespaces.UnsortedList(), extras.MetadataOnly, isAdmin)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			//nolint:errorlint
