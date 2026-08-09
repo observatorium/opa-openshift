@@ -34,6 +34,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		namespaces   []string
 		metadataOnly bool
 		matcher      *config.Matcher
+		isAdmin      bool
 		wantKey      string
 	}{
 		{
@@ -52,7 +53,8 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			matcher: testMatcher,
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
+			isAdmin: false,
+			wantKey: "get,false,admin:false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
 			desc:  "kubeadmin - new OTEL matcher",
@@ -70,7 +72,8 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			matcher: newMatcher,
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:63ef1e06752e96333e3ae17570b81df7b194ad421c2a8920708832815bf0a6b0",
+			isAdmin: false,
+			wantKey: "get,false,admin:false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:63ef1e06752e96333e3ae17570b81df7b194ad421c2a8920708832815bf0a6b0",
 		},
 		{
 			desc:  "kubeadmin - empty matcher",
@@ -88,7 +91,8 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			matcher: config.EmptyMatcher(),
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
+			isAdmin: false,
+			wantKey: "get,false,admin:false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
 		},
 		{
 			desc:  "kubeadmin - nil matcher",
@@ -106,7 +110,8 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			matcher: nil,
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
+			isAdmin: false,
+			wantKey: "get,false,admin:false,loki.grafana.com,application,logs,log-test-0,kube:admin:82516c2c21f2cb869241ffee091dd6e07b6fa1f74595536802d72de88b4c2130,m:empty",
 		},
 		{
 			desc:  "logcollector",
@@ -123,7 +128,8 @@ func TestGenerateCacheKey(t *testing.T) {
 			apiGroup:     "loki.grafana.com",
 			namespaces:   []string{},
 			matcher:      testMatcher,
-			wantKey:      "create,false,loki.grafana.com,infrastructure,logs,,system:serviceaccount:openshift-logging:logcollector:4209c35b9ede6e39245d0c141006cb523d44bf65f04fdf834e164de263842753,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
+			isAdmin:      false,
+			wantKey:      "create,false,admin:false,loki.grafana.com,infrastructure,logs,,system:serviceaccount:openshift-logging:logcollector:4209c35b9ede6e39245d0c141006cb523d44bf65f04fdf834e164de263842753,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
 			desc:  "test user",
@@ -141,7 +147,8 @@ func TestGenerateCacheKey(t *testing.T) {
 				"log-test-0",
 			},
 			matcher: testMatcher,
-			wantKey: "get,false,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
+			isAdmin: false,
+			wantKey: "get,false,admin:false,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 		{
 			desc:  "test user - metadata request",
@@ -160,13 +167,14 @@ func TestGenerateCacheKey(t *testing.T) {
 			},
 			metadataOnly: true,
 			matcher:      testMatcher,
-			wantKey:      "get,true,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
+			isAdmin:      false,
+			wantKey:      "get,true,admin:false,loki.grafana.com,application,logs,log-test-0,testuser-0:0cda1618ea4d6358ea3fb7e5270b8a85695fd4114a72f994fe71dde69df8d54a,m:e87a64ecd681d9831b31f30f429773801d276cf23e4b112cce2f077a1a092060",
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			got := generateCacheKey(tc.token, tc.user, tc.groups, tc.verb, tc.resource, tc.resourceName, tc.apiGroup, tc.namespaces, tc.metadataOnly, tc.matcher)
+			got := generateCacheKey(tc.token, tc.user, tc.groups, tc.verb, tc.resource, tc.resourceName, tc.apiGroup, tc.namespaces, tc.metadataOnly, tc.matcher, tc.isAdmin)
 
 			if got != tc.wantKey {
 				t.Errorf("got cache key %q, want %q", got, tc.wantKey)

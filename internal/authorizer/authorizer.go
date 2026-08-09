@@ -33,6 +33,7 @@ type Authorizer struct {
 type AuthzResponseData struct {
 	Matchers  []*labels.Matcher `json:"matchers,omitempty"`
 	MatcherOp config.MatcherOp  `json:"matcherOp,omitempty"`
+	IsAdmin   bool              `json:"isAdmin"`
 }
 
 type StatusCoder interface {
@@ -56,7 +57,7 @@ func (a *Authorizer) Authorize(
 	token,
 	user string, groups []string,
 	verb, resource, resourceName, apiGroup string,
-	namespaces []string, metadataOnly bool,
+	namespaces []string, metadataOnly bool, isAdmin bool,
 ) (types.DataResponseV1, error) {
 	switch verb {
 	case CreateVerb, GetVerb:
@@ -64,7 +65,7 @@ func (a *Authorizer) Authorize(
 		return types.DataResponseV1{}, &StatusCodeError{fmt.Errorf("%w: %s", errUnexpectedVerb, verb), http.StatusBadRequest}
 	}
 
-	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly, a.matcher)
+	cacheKey := generateCacheKey(token, user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly, a.matcher, isAdmin)
 
 	level.Debug(a.logger).Log("msg", "looking up in cache", "cachekey", cacheKey) //nolint:errcheck
 	res, ok, err := a.cache.Get(cacheKey)
@@ -78,7 +79,7 @@ func (a *Authorizer) Authorize(
 		return res, nil
 	}
 
-	res, err = a.authorizeInner(user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly)
+	res, err = a.authorizeInner(user, groups, verb, resource, resourceName, apiGroup, namespaces, metadataOnly, isAdmin)
 	if err != nil {
 		return types.DataResponseV1{}, err
 	}
@@ -91,7 +92,7 @@ func (a *Authorizer) Authorize(
 	return res, nil
 }
 
-func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, metadataOnly bool) (types.DataResponseV1, error) {
+func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource, resourceName, apiGroup string, namespaces []string, metadataOnly bool, isAdmin bool) (types.DataResponseV1, error) {
 	// check if user has cluster-wide access
 	clusterAllow, err := a.client.AccessReview(user, groups, verb, resource, resourceName, apiGroup, "")
 	if err != nil {
@@ -108,12 +109,12 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	if verb == CreateVerb {
 		// No namespaced checks for log collection -> allow based on cluster-wide check
-		return minimalDataResponseV1(clusterAllow), nil
+		return minimalDataResponseV1(clusterAllow, isAdmin), nil
 	}
 
 	if clusterAllow {
 		// user has cluster-wide access -> per-namespace check is not meaningful (always successful)
-		return a.authorizeClusterWide(namespaces)
+		return a.authorizeClusterWide(namespaces, isAdmin)
 	}
 
 	if metadataOnly && len(namespaces) == 0 {
@@ -130,7 +131,7 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 		if len(nsList) == 0 {
 			// list of namespaces is empty -> deny
-			return minimalDataResponseV1(false), nil
+			return minimalDataResponseV1(false, isAdmin), nil
 		}
 
 		namespaces = nsList
@@ -159,11 +160,11 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 
 	if len(allowed) == 0 {
 		// all SARs were unsuccessful -> deny
-		return minimalDataResponseV1(false), nil
+		return minimalDataResponseV1(false, isAdmin), nil
 	}
 
 	// allow access for the namespaces where the SAR was successful
-	res, err := newDataResponseV1(allowed, a.matcher)
+	res, err := newDataResponseV1(allowed, a.matcher, isAdmin)
 	if err != nil {
 		return types.DataResponseV1{},
 			&StatusCodeError{fmt.Errorf("failed to create auth response: %w", err), http.StatusInternalServerError}
@@ -172,10 +173,10 @@ func (a *Authorizer) authorizeInner(user string, groups []string, verb, resource
 	return res, nil
 }
 
-func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataResponseV1, error) {
+func (a *Authorizer) authorizeClusterWide(namespaces []string, isAdmin bool) (types.DataResponseV1, error) {
 	if a.matcher.IsEmpty() {
 		// user has cluster-wide access and does not need matcher -> allow
-		return minimalDataResponseV1(true), nil
+		return minimalDataResponseV1(true, isAdmin), nil
 	}
 
 	// user has cluster-wide access but needs a matcher -> populate namespaces from API list
@@ -186,7 +187,7 @@ func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataRespon
 
 	if len(namespaces) == 0 {
 		// request was cluster-scoped, return matcher with all accessible namespaces
-		return newDataResponseV1(nsList, a.matcher)
+		return newDataResponseV1(nsList, a.matcher, isAdmin)
 	}
 
 	nsMap := map[string]bool{}
@@ -202,17 +203,31 @@ func (a *Authorizer) authorizeClusterWide(namespaces []string) (types.DataRespon
 	}
 
 	// cluster-scoped SAR was successful, so namespaced SARs will be successful as well -> return matcher
-	return newDataResponseV1(filtered, a.matcher)
+	return newDataResponseV1(filtered, a.matcher, isAdmin)
 }
 
-func minimalDataResponseV1(allowed bool) types.DataResponseV1 {
-	var res interface{} = allowed
+func minimalDataResponseV1(allowed bool, isAdmin bool) types.DataResponseV1 {
+	data, _ := json.Marshal(&AuthzResponseData{
+		Matchers:  []*labels.Matcher{},
+		MatcherOp: "",
+		IsAdmin:   isAdmin,
+	})
+
+	allowedStr := "false"
+	if allowed {
+		allowedStr = "true"
+	}
+
+	var res interface{} = map[string]string{
+		"allowed": allowedStr,
+		"data":    string(data),
+	}
 	return types.DataResponseV1{Result: &res}
 }
 
-func newDataResponseV1(ns []string, matcher *config.Matcher) (types.DataResponseV1, error) {
+func newDataResponseV1(ns []string, matcher *config.Matcher, isAdmin bool) (types.DataResponseV1, error) {
 	if matcher.IsEmpty() && len(ns) > 0 {
-		return minimalDataResponseV1(true), nil
+		return minimalDataResponseV1(true, isAdmin), nil
 	}
 
 	matchers := []*labels.Matcher{}
@@ -227,6 +242,7 @@ func newDataResponseV1(ns []string, matcher *config.Matcher) (types.DataResponse
 	data, err := json.Marshal(&AuthzResponseData{
 		Matchers:  matchers,
 		MatcherOp: matcher.MatcherOp,
+		IsAdmin:   isAdmin,
 	})
 	if err != nil {
 		return types.DataResponseV1{}, fmt.Errorf("failed to marshal matcher to json: %w", err)

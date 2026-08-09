@@ -82,7 +82,7 @@ func TestAuthorize(t *testing.T) {
 	}
 	var namespaceResult interface{} = map[string]string{
 		"allowed": "true",
-		"data":    `{"matchers":[{"Type":2,"Name":"kubernetes_namespace_name","Value":"test-namespace-1"}],"matcherOp":"or"}`,
+		"data":    `{"matchers":[{"Type":2,"Name":"kubernetes_namespace_name","Value":"test-namespace-1"}],"matcherOp":"or","isAdmin":false}`,
 	}
 	namespaceResponse := types.DataResponseV1{
 		Result: &namespaceResult,
@@ -90,7 +90,7 @@ func TestAuthorize(t *testing.T) {
 
 	var namespaceResultDeny interface{} = map[string]string{
 		"allowed": "false",
-		"data":    `{"matchers":[{"Type":2,"Name":"kubernetes_namespace_name","Value":""}],"matcherOp":"or"}`,
+		"data":    `{"matchers":[{"Type":2,"Name":"kubernetes_namespace_name","Value":""}],"matcherOp":"or","isAdmin":false}`,
 	}
 	namespaceResponseDeny := types.DataResponseV1{
 		Result: &namespaceResultDeny,
@@ -121,7 +121,7 @@ func TestAuthorize(t *testing.T) {
 				"test-namespace-1",
 			},
 			verb:          GetVerb,
-			wantAuthorize: minimalDataResponseV1(true),
+			wantAuthorize: minimalDataResponseV1(true, false),
 		},
 		{
 			desc:    "allow - get, with matcher",
@@ -147,7 +147,7 @@ func TestAuthorize(t *testing.T) {
 			sarFunc:       allowSAR,
 			nsList:        []string{},
 			verb:          CreateVerb,
-			wantAuthorize: minimalDataResponseV1(true),
+			wantAuthorize: minimalDataResponseV1(true, false),
 		},
 		{
 			desc:        "fail - cache get error",
@@ -240,7 +240,7 @@ func TestAuthorize(t *testing.T) {
 			nsList:        []string{"test-namespace-0", "test-namespace-1"},
 			verb:          GetVerb,
 			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
-			wantAuthorize: minimalDataResponseV1(false),
+			wantAuthorize: minimalDataResponseV1(false, false),
 		},
 		{
 			desc:    "fail - get, with matcher, namespaced SAR failure",
@@ -274,7 +274,7 @@ func TestAuthorize(t *testing.T) {
 			nsList:        []string{"test-namespace-0", "test-namespace-1"},
 			verb:          GetVerb,
 			namespaces:    []string{"test-namespace-0", "test-namespace-1"},
-			wantAuthorize: minimalDataResponseV1(false),
+			wantAuthorize: minimalDataResponseV1(false, false),
 		},
 		{
 			desc:    "ssar - allow - get, with matcher, namespaced, cluster-wide SSAR",
@@ -318,7 +318,7 @@ func TestAuthorize(t *testing.T) {
 				"test-token", "test-user", []string{"test-group-1"},
 				tc.verb,
 				"application", "logs", "loki.grafana.com",
-				tc.namespaces, tc.metadataOnly,
+				tc.namespaces, tc.metadataOnly, false,
 			)
 
 			if tc.wantErrMsg == "" {
