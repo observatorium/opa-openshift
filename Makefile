@@ -47,7 +47,7 @@ deps: go.mod go.sum
 	go mod verify
 
 opa-openshift: deps main.go $(wildcard *.go) $(wildcard */*.go)
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -a -ldflags '-s -w -X main.Version=$(VERSION) -X main.Branch=$(GIT_BRANCH) -X main.Revision=$(GIT_REVISION)' -o $@ .
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=amd64 GO111MODULE=on GOPROXY=https://proxy.golang.org go build -ldflags '-s -w -X main.Version=$(VERSION) -X main.Branch=$(GIT_BRANCH) -X main.Revision=$(GIT_REVISION)' -o $@ .
 
 .PHONY: go-generate
 go-generate:
