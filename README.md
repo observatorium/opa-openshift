@@ -123,6 +123,7 @@ Usage of ./opa-openshift:
       --openshift.kubeconfig string            A path to the kubeconfig against to use for authorizing client requests.
       --openshift.mappings strings             A map of tenantIDs to resource api groups to check to apply a given role to a user, e.g. tenant-a=observatorium.openshift.io
       --tls.cipher-suites string               Comma-separated list of cipher suites for the server. Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants). If omitted, the default Go cipher suites will be used. Note that TLS 1.3 ciphersuites are not configurable.
+      --tls.curve-preferences string           Comma-separated list of key exchange groups for the server. Values are IANA "TLS Supported Groups" names (e.g. X25519, secp256r1, X25519MLKEM768); Go crypto/tls constant names (e.g. CurveP256) are also accepted for the classic curves. If omitted, the default Go groups will be used. The list is a filter of allowed groups; crypto/tls chooses the preference order.
       --tls.internal.server.ca-file string     File containing the TLS CA against which to verify servers. If no server CA is specified, the client will use the system certificates.
       --tls.internal.server.cert-file string   File containing the default x509 Certificate for internal HTTPS. Leave blank to disable TLS.
       --tls.internal.server.key-file string    File containing the default x509 private key matching --tls.internal.server.cert-file. Leave blank to disable TLS.

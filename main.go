@@ -151,6 +151,7 @@ func main() {
 			cfg.TLS.ServerKeyFile,
 			cfg.TLS.MinVersion,
 			cfg.TLS.CipherSuites,
+			cfg.TLS.CurvePreferences,
 		)
 		if err != nil {
 			stdlog.Fatal(err)
@@ -186,6 +187,7 @@ func main() {
 			cfg.TLS.InternalServerKeyFile,
 			cfg.TLS.MinVersion,
 			cfg.TLS.CipherSuites,
+			cfg.TLS.CurvePreferences,
 		)
 		if err != nil {
 			stdlog.Fatal(err)

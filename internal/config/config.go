@@ -55,8 +55,9 @@ type ServerConfig struct {
 }
 
 type TLSConfig struct {
-	MinVersion   string
-	CipherSuites []string
+	MinVersion       string
+	CipherSuites     []string
+	CurvePreferences []string
 
 	ServerCertFile string
 	ServerKeyFile  string
@@ -74,7 +75,10 @@ type MemcachedConfig struct {
 
 //nolint:cyclop
 func ParseFlags() (*Config, error) {
-	var rawTLSCipherSuites string
+	var (
+		rawTLSCipherSuites     string
+		rawTLSCurvePreferences string
+	)
 
 	cfg := &Config{}
 	// Logger flags
@@ -94,6 +98,12 @@ func ParseFlags() (*Config, error) {
 			" Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants)."+
 			" If omitted, the default Go cipher suites will be used."+
 			" Note that TLS 1.3 ciphersuites are not configurable.")
+	flag.StringVar(&rawTLSCurvePreferences, "tls.curve-preferences", "",
+		"Comma-separated list of key exchange groups for the server."+
+			" Values are IANA \"TLS Supported Groups\" names (e.g. X25519, secp256r1, X25519MLKEM768);"+
+			" Go crypto/tls constant names (e.g. CurveP256) are also accepted for the classic curves."+
+			" If omitted, the default Go groups will be used."+
+			" The list is a filter of allowed groups; crypto/tls chooses the preference order.")
 	flag.StringVar(&cfg.TLS.ServerCertFile, "tls.server.cert-file", "",
 		"File containing the default x509 Certificate for HTTPS. Leave blank to disable TLS.")
 	flag.StringVar(&cfg.TLS.ServerKeyFile, "tls.server.key-file", "",
@@ -144,6 +154,10 @@ func ParseFlags() (*Config, error) {
 
 	if rawTLSCipherSuites != "" {
 		cfg.TLS.CipherSuites = strings.Split(rawTLSCipherSuites, ",")
+	}
+
+	if rawTLSCurvePreferences != "" {
+		cfg.TLS.CurvePreferences = strings.Split(rawTLSCurvePreferences, ",")
 	}
 
 	if len(cfg.Opa.Pkg) > 0 && !validPackage.Match([]byte(cfg.Opa.Pkg)) {
