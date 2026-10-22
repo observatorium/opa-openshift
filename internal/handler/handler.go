@@ -53,10 +53,16 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 	kubeconfigPath := cfg.KubeconfigPath
 	tenantAPIGroups := cfg.Mappings
 	debugToken := cfg.DebugToken
-	matcher := cfg.Opa.ToMatcher()
+	matchers, matchersErr := cfg.Opa.ToMatchers()
+	if matchersErr != nil {
+		level.Error(l).Log("msg", "failed to parse matchers configuration", "err", matchersErr)
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
+		if matchers == nil {
+			http.Error(w, "failed to parse matchers configuration. Check error logs for details", http.StatusInternalServerError)
+			return //nolint:nlreturn
+		} else if r.Method != http.MethodPost {
 			http.Error(w, "request must be a POST", http.StatusBadRequest)
 			return //nolint:nlreturn
 		}
@@ -119,7 +125,7 @@ func New(l log.Logger, c cache.Cacher, wt transport.WrapperFunc, cfg *config.Con
 			return
 		}
 
-		matcherForRequest := matcher.ForRequest(req.Input.Tenant, req.Input.Groups)
+		matcherForRequest := matchers.ForRequest(req.Input.Tenant, req.Input.Groups)
 		extras := req.Input.Extras
 		if extras.WildcardSelectors && !matcherForRequest.IsEmpty() {
 			// do not allow wildcards in namespaces for everyone that needs an explicit namespace match
